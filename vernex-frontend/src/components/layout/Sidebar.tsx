@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { navigationGroups } from "@/lib/navigation";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,9 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+
+  const isGroupActive = (items: (typeof navigationGroups)[number]["items"]) =>
+    items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
 
   return (
     <>
@@ -42,11 +45,29 @@ export function Sidebar({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-          {navigationGroups.map((group) => (
-            <div key={group.label}>
-              <p className="px-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">{group.label}</p>
-              <div className="mt-2 space-y-1">
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-5">
+          {navigationGroups.map((group) => {
+            const isProductGroup = group.label !== "Shared Core Platform";
+            const groupActive = isGroupActive(group.items);
+
+            return (
+              <details key={group.label} open={!isProductGroup || groupActive} className="group">
+                <summary
+                  className={cn(
+                    "flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-sm font-bold transition [&::-webkit-details-marker]:hidden",
+                    isProductGroup
+                      ? groupActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-slate-800 hover:bg-muted"
+                      : "pointer-events-none px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground"
+                  )}
+                >
+                  <span>{group.label}</span>
+                  {isProductGroup ? (
+                    <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+                  ) : null}
+                </summary>
+                <div className={cn("mt-2 space-y-1", isProductGroup ? "pl-2" : "")}>
                 {group.items.map((item) => {
                   const active = pathname === item.href;
                   const Icon = item.icon;
@@ -58,7 +79,8 @@ export function Sidebar({
                       onClick={onClose}
                       className={cn(
                         "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
-                        active ? "bg-primary text-primary-foreground" : "text-slate-700 hover:bg-muted"
+                        active ? "bg-primary text-primary-foreground" : "text-slate-700 hover:bg-muted",
+                        isProductGroup ? "text-[13px]" : ""
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -67,8 +89,9 @@ export function Sidebar({
                   );
                 })}
               </div>
-            </div>
-          ))}
+              </details>
+            );
+          })}
         </nav>
       </aside>
     </>

@@ -2,7 +2,12 @@ import { BarChart3, Bot, TrendingUp, Users } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StateViews";
+import { ReportPreview } from "@/components/modules/shared-core/ReportPreview";
+import { DataTable } from "@/components/tables/DataTable";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { leads, salesTrend } from "@/lib/mock-data";
+import { formatCurrency } from "@/lib/utils";
+import type { Lead } from "@/types";
 
 const platformTrend = [
   { name: "Mon", value: 42 },
@@ -30,11 +35,36 @@ export default function DashboardPage() {
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <ChartCard title="Platform Activity" description="Demo-ready weekly activity trend" data={platformTrend} />
-        <div className="grid gap-4">
-          <LoadingState label="Loading state component" />
-          <EmptyState title="Empty state component" description="Reusable across tables, reports, uploads, and inbox views." />
-          <ErrorState title="Error state component" description="Reusable fallback for API-ready screens." />
-        </div>
+        <ChartCard title="Profit Trend" description="Restaurant sales movement from demo records" data={salesTrend} type="bar" />
+      </div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <DataTable<Lead>
+          data={leads.slice(0, 6)}
+          columns={[
+            { key: "leadName", header: "Recent Lead" },
+            { key: "source", header: "Source" },
+            { key: "requirement", header: "Requirement" },
+            { key: "budget", header: "Budget", render: (row) => formatCurrency(row.budget) },
+            {
+              key: "leadScore",
+              header: "Score",
+              render: (row) => (
+                <StatusBadge tone={row.leadScore === "Hot" ? "danger" : row.leadScore === "Warm" ? "warning" : "neutral"}>
+                  {row.leadScore}
+                </StatusBadge>
+              )
+            }
+          ]}
+        />
+        <ReportPreview
+          title="Today at a glance"
+          items={[
+            { label: "Sales Agent", value: "36 new enquiries, 18 hot leads" },
+            { label: "Profit Analysis", value: "Dinner peak is strongest between 7 PM and 9 PM" },
+            { label: "Owner Action", value: "Review low-margin items and follow up with hot leads first" },
+            { label: "Next Report", value: "Daily report is ready for export" }
+          ]}
+        />
       </div>
     </>
   );
