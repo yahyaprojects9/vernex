@@ -1,0 +1,169 @@
+export type UserRole = "Owner" | "Admin" | "Staff";
+export type UserStatus = "Active" | "Inactive";
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  lastActive: string;
+};
+
+export type LeadStatus = "New" | "Contacted" | "Follow-up" | "Interested" | "Converted" | "Lost";
+export type LeadScore = "Hot" | "Warm" | "Cold";
+
+export type Lead = {
+  id: string;
+  leadName: string;
+  phone: string;
+  source: "WhatsApp" | "Website" | "Email" | "Manual";
+  requirement: string;
+  budget: number;
+  location: string;
+  status: LeadStatus;
+  leadScore: LeadScore;
+  assignedStaff: string;
+  nextFollowUp: string;
+  notes: string;
+};
+
+export type Quotation = {
+  id: string;
+  quotationTitle: string;
+  servicePackageName: string;
+  price: number;
+  description: string;
+  terms: string;
+  validity: string;
+  status: "Draft" | "Sent" | "Accepted" | "Expired";
+};
+
+export type Conversation = {
+  id: string;
+  customerName: string;
+  channel: "WhatsApp" | "Website" | "Email" | "Instagram";
+  lastMessage: string;
+  mode: "AI" | "Human";
+  messageHistory: { id: string; sender: "ai" | "customer" | "staff"; body: string; time: string }[];
+  internalNotes: string;
+  leadId: string;
+};
+
+export type MessageTemplate = {
+  id: string;
+  templateName: string;
+  triggerType: string;
+  language: string;
+  messageBody: string;
+  status: "Active" | "Inactive";
+};
+
+export type FollowUpRule = {
+  id: string;
+  ruleName: string;
+  triggerCondition: string;
+  delayTime: string;
+  template: string;
+  leadStatus: LeadStatus;
+  status: "Active" | "Inactive";
+};
+
+export type CRMStage = {
+  id: string;
+  title: LeadStatus;
+  leadIds: string[];
+};
+
+export type HandoffRequest = {
+  id: string;
+  customerName: string;
+  reason: string;
+  conversationSummary: string;
+  assignedStaff: string;
+  status: "Pending" | "In Progress" | "Closed";
+};
+
+export type SalesRecord = {
+  id: string;
+  date: string;
+  billNumber: string;
+  itemName: string;
+  category: string;
+  quantity: number;
+  sellingPrice: number;
+  totalAmount: number;
+  orderSource: "Dine-in" | "Swiggy" | "Zomato" | "Takeaway";
+  time: string;
+};
+
+export type MenuItemPerformance = {
+  id: string;
+  itemName: string;
+  category: string;
+  quantitySold: number;
+  revenue: number;
+  foodCost: number;
+  profitMargin: number;
+  performanceStatus: "Best Seller" | "Healthy" | "Low Margin" | "Slow Moving";
+};
+
+export type CostTracking = {
+  id: string;
+  itemName: string;
+  sellingPrice: number;
+  foodCost: number;
+  grossMargin: number;
+  marginPercentage: number;
+  status: "Healthy" | "Review" | "Critical";
+};
+
+export type WastageEntry = {
+  id: string;
+  date: string;
+  itemName: string;
+  quantityWasted: number;
+  reason: "Spoilage" | "Overproduction" | "Kitchen Error" | "Expired";
+  estimatedCostLoss: number;
+  staffNote: string;
+};
+
+export type ProfitReport = {
+  id: string;
+  period: "Daily" | "Weekly" | "Monthly";
+  salesSummary: string;
+  bestWorstItems: string;
+  foodCostSummary: string;
+  wastageSummary: string;
+  peakHourSummary: string;
+  aiRecommendations: string;
+  ownerActionPoints: string;
+};
+
+export type DashboardMetrics = {
+  label: string;
+  value: string;
+  helper: string;
+  trend?: string;
+};
+
+export type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  read: boolean;
+};
+
+export type BusinessSettings = {
+  businessName: string;
+  language: string;
+  currency: string;
+  workingHours: string;
+  notificationsEnabled: boolean;
+};
+
+export type SystemSettings = {
+  timezone: string;
+  dateFormat: string;
+  demoMode: boolean;
+};

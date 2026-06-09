@@ -8,7 +8,7 @@ export type DataTableColumn<T> = {
   className?: string;
 };
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   emptyTitle = "No records found"
@@ -39,7 +39,7 @@ export function DataTable<T extends Record<string, unknown>>({
               <tr key={index} className="bg-card transition hover:bg-muted/40">
                 {columns.map((column) => (
                   <td key={String(column.key)} className={cn("px-4 py-3 align-middle", column.className)}>
-                    {column.render ? column.render(row) : String(row[column.key] ?? "")}
+                    {column.render ? column.render(row) : String((row as Record<string, unknown>)[String(column.key)] ?? "")}
                   </td>
                 ))}
               </tr>
