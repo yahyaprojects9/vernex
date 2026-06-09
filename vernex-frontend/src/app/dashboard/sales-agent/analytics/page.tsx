@@ -1,7 +1,7 @@
 import { BarChart3, Bot, MessageSquare, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { LeadAnalytics } from "@/components/modules/shared-core/CommonSections";
+import { LeadAnalytics } from "@/modules/shared-core/CommonSections";
 
 export default function SalesAnalyticsPage() {
   return (

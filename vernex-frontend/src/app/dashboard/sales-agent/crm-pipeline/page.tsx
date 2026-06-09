@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/PageHeader";
-import { KanbanBoard } from "@/components/modules/sales-agent/KanbanBoard";
+import { KanbanBoard } from "@/modules/sales-agent/KanbanBoard";
 import { leads } from "@/lib/mock-data";
 
 const stages = ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"];

@@ -2,7 +2,7 @@ import { BarChart3, Bot, TrendingUp, Users } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ReportPreview } from "@/components/modules/shared-core/ReportPreview";
+import { ReportPreview } from "@/modules/shared-core/ReportPreview";
 import { DataTable } from "@/components/tables/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { leads, salesTrend } from "@/lib/mock-data";

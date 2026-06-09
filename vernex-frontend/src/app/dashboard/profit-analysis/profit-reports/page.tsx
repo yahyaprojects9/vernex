@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ProfitReportPreview } from "@/components/modules/shared-core/CommonSections";
+import { ProfitReportPreview } from "@/modules/shared-core/CommonSections";
 import { Button } from "@/components/ui/Button";
 
 export default function ProfitReportsPage() {

@@ -35,9 +35,7 @@ export const navigationGroups: NavigationGroup[] = [
       { label: "Quotations", href: "/dashboard/sales-agent/quotations", icon: ReceiptText },
       { label: "Conversations", href: "/dashboard/sales-agent/conversations", icon: MessageSquareText },
       { label: "AI Auto Reply", href: "/dashboard/sales-agent/ai-auto-reply", icon: Bot },
-      { label: "Message Templates", href: "/dashboard/sales-agent/message-templates", icon: MessageSquareText },
       { label: "Follow-up Automation", href: "/dashboard/sales-agent/follow-up-automation", icon: Handshake },
-      { label: "AI Sales Review", href: "/dashboard/sales-agent/ai-sales-review", icon: Bot },
       { label: "CRM Pipeline", href: "/dashboard/sales-agent/crm-pipeline", icon: ChartNoAxesCombined },
       { label: "Human Handoff", href: "/dashboard/sales-agent/human-handoff", icon: Users },
       { label: "Analytics", href: "/dashboard/sales-agent/analytics", icon: BarChart3 }

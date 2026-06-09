@@ -4,7 +4,7 @@ import { UploadCard } from "@/components/forms/UploadCard";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ReportPreview } from "@/components/modules/shared-core/ReportPreview";
+import { ReportPreview } from "@/modules/shared-core/ReportPreview";
 import { hourlySales, leadTrend, profitReports, salesTrend, sourceSplit } from "@/lib/mock-data";
 
 export function ReportsGrid() {

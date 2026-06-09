@@ -1,7 +1,7 @@
 import { ChartNoAxesCombined, Percent } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CostForm } from "@/components/modules/shared-core/CommonSections";
+import { CostForm } from "@/modules/shared-core/CommonSections";
 import { DataTable } from "@/components/tables/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { costRecords } from "@/lib/mock-data";

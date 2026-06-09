@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/PageHeader";
-import { SettingsForm } from "@/components/modules/shared-core/SettingsForm";
+import { SettingsForm } from "@/modules/shared-core/SettingsForm";
 
 export default function SettingsPage() {
   return (

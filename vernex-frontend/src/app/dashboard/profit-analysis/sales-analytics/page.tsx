@@ -2,7 +2,7 @@ import { BadgeIndianRupee, Receipt, Upload } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { UploadHistory } from "@/components/modules/shared-core/CommonSections";
+import { UploadHistory } from "@/modules/shared-core/CommonSections";
 import { DataTable } from "@/components/tables/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { salesRecords, salesTrend } from "@/lib/mock-data";

@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/PageHeader";
-import { AiReplyConfigurator } from "@/components/modules/shared-core/CommonSections";
+import { AiReplyConfigurator } from "@/modules/shared-core/CommonSections";
 
 export default function AiAutoReplyPage() {
   return (

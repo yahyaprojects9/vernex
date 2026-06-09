@@ -1,6 +1,6 @@
 import { FilterBar } from "@/components/forms/FilterBar";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ReportsGrid } from "@/components/modules/shared-core/CommonSections";
+import { ReportsGrid } from "@/modules/shared-core/CommonSections";
 import { EmptyState } from "@/components/ui/StateViews";
 
 export default function ReportsPage() {
