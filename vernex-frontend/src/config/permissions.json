@@ -1,0 +1,14 @@
+[
+  {
+    "module": "Shared Core",
+    "permissions": ["View Users", "Create Users", "Edit Users", "Delete Users", "View Roles", "Create Roles", "Edit Roles", "Delete Roles", "Configure Permissions", "View Branches", "Edit Branches", "View Departments", "Edit Departments"]
+  },
+  {
+    "module": "Sales Agent",
+    "permissions": ["View", "Create Lead", "Edit Lead", "Delete Lead", "Export Leads", "Create Conversation", "Assign Conversation", "Send Message", "Manage Quotations", "Manage Rules"]
+  },
+  {
+    "module": "Profit Analysis",
+    "permissions": ["View", "Import Data", "Edit Cost", "Edit Wastage", "Generate Reports", "Export Reports", "View Analytics"]
+  }
+]

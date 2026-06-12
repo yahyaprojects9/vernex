@@ -12,6 +12,9 @@ const allowedDirectories = new Set([
   "src/app/auth/register",
   "src/app/dashboard",
   "src/app/dashboard/users",
+  "src/app/dashboard/roles",
+  "src/app/dashboard/departments",
+  "src/app/dashboard/branches",
   "src/app/dashboard/settings",
   "src/app/dashboard/reports",
   "src/app/dashboard/sales-agent",
@@ -44,6 +47,7 @@ const allowedDirectories = new Set([
   "src/modules/shared-core",
   "src/modules/sales-agent",
   "src/modules/profit-analysis",
+  "src/config",
   "src/lib",
   "src/types"
 ]);

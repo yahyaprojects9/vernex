@@ -1,0 +1,10 @@
+{
+  "brandName": "Vernex Platform",
+  "companyName": "Vernex Demo Bistro",
+  "currency": "INR",
+  "language": "English",
+  "timezone": "Asia/Calcutta",
+  "dateFormat": "dd-MM-yyyy",
+  "workingHours": "10:00 AM - 11:00 PM",
+  "supportEmail": "support@vernex.demo"
+}

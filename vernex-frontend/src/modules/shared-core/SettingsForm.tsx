@@ -2,22 +2,26 @@
 
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
-import { businessSettings } from "@/lib/mock-data";
+import { SettingsService } from "@/lib/services";
+import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 
 export function SettingsForm() {
+  const store = useLocalStore();
+  const settings = store.settings;
+
   return (
     <form className="dashboard-surface grid gap-4 p-5 md:grid-cols-2">
       <label className="space-y-1">
         <span className="text-sm font-medium">Business name</span>
-        <Input defaultValue={businessSettings.businessName} />
+        <Input defaultValue={settings.companyName} onBlur={(event) => SettingsService.update({ companyName: event.target.value })} />
       </label>
       <label className="space-y-1">
         <span className="text-sm font-medium">Working hours</span>
-        <Input defaultValue={businessSettings.workingHours} />
+        <Input defaultValue={settings.workingHours} onBlur={(event) => SettingsService.update({ workingHours: event.target.value })} />
       </label>
       <label className="space-y-1">
         <span className="text-sm font-medium">Language</span>
-        <Select defaultValue={businessSettings.language}>
+        <Select defaultValue={settings.language} onChange={(event) => SettingsService.update({ language: event.target.value })}>
           <option>English</option>
           <option>Hindi</option>
           <option>Malayalam</option>
@@ -26,7 +30,7 @@ export function SettingsForm() {
       </label>
       <label className="space-y-1">
         <span className="text-sm font-medium">Currency</span>
-        <Select defaultValue={businessSettings.currency}>
+        <Select defaultValue={settings.currency} onChange={(event) => SettingsService.update({ currency: event.target.value })}>
           <option>INR</option>
           <option>USD</option>
           <option>AED</option>

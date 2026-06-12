@@ -1,0 +1,5 @@
+[
+  { "id": "shared-core", "label": "Shared Core", "slug": "dashboard", "enabled": true },
+  { "id": "sales-agent", "label": "Sales Agent", "slug": "dashboard/sales-agent", "enabled": true },
+  { "id": "profit-analysis", "label": "Profit Analysis", "slug": "dashboard/profit-analysis", "enabled": true }
+]

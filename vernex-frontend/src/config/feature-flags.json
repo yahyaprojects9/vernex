@@ -1,0 +1,9 @@
+{
+  "roleManagement": true,
+  "branchFiltering": true,
+  "departmentFiltering": true,
+  "localPersistence": true,
+  "salesAnalyticsIngestion": true,
+  "chatSimulation": true,
+  "auditMode": true
+}

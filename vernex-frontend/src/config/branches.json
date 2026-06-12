@@ -1,0 +1,7 @@
+[
+  { "id": "branch-chennai", "name": "Chennai", "status": "Active", "managerId": "USR-2", "city": "Chennai", "country": "India" },
+  { "id": "branch-coimbatore", "name": "Coimbatore", "status": "Active", "managerId": "USR-3", "city": "Coimbatore", "country": "India" },
+  { "id": "branch-bangalore", "name": "Bangalore", "status": "Active", "managerId": "USR-4", "city": "Bangalore", "country": "India" },
+  { "id": "branch-dubai", "name": "Dubai", "status": "Active", "managerId": "USR-5", "city": "Dubai", "country": "UAE" },
+  { "id": "branch-london", "name": "London", "status": "Planning", "managerId": "USR-6", "city": "London", "country": "UK" }
+]

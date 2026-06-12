@@ -1,0 +1,67 @@
+[
+  {
+    "id": "owner",
+    "name": "Owner",
+    "level": 100,
+    "description": "Highest authority with full company control.",
+    "canModifyPermissions": true,
+    "canModifyHierarchy": true,
+    "globalVisibility": true
+  },
+  {
+    "id": "manager",
+    "name": "Manager",
+    "level": 70,
+    "description": "Manages assigned branches, departments, users, and work.",
+    "canModifyPermissions": true,
+    "canModifyHierarchy": false,
+    "globalVisibility": false
+  },
+  {
+    "id": "admin",
+    "name": "Admin",
+    "level": 90,
+    "description": "Audit-focused read-only role with global visibility.",
+    "canModifyPermissions": false,
+    "canModifyHierarchy": false,
+    "globalVisibility": true,
+    "readOnly": true
+  },
+  {
+    "id": "staff",
+    "name": "Staff",
+    "level": 30,
+    "description": "Accesses explicitly assigned work only.",
+    "canModifyPermissions": false,
+    "canModifyHierarchy": false,
+    "globalVisibility": false
+  },
+  {
+    "id": "sales-executive",
+    "name": "Sales Executive",
+    "level": 35,
+    "description": "Handles assigned leads, conversations, quotations, and follow-ups.",
+    "canModifyPermissions": false,
+    "canModifyHierarchy": false,
+    "globalVisibility": false
+  },
+  {
+    "id": "analyst",
+    "name": "Analyst",
+    "level": 35,
+    "description": "Reviews assigned analytics and reports.",
+    "canModifyPermissions": false,
+    "canModifyHierarchy": false,
+    "globalVisibility": false
+  },
+  {
+    "id": "viewer",
+    "name": "Viewer",
+    "level": 10,
+    "description": "Read-only access to assigned resources.",
+    "canModifyPermissions": false,
+    "canModifyHierarchy": false,
+    "globalVisibility": false,
+    "readOnly": true
+  }
+]
