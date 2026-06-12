@@ -28,6 +28,22 @@ type AuthFields = {
   reportingManager?: string;
 };
 
+const roleOptions = [
+  { id: "owner", label: "Owner", email: "owner@vernex.demo", password: "owner123" },
+  { id: "manager", label: "Manager", email: "manager@vernex.demo", password: "manager123" },
+  { id: "admin", label: "Admin", email: "admin@vernex.demo", password: "admin123" },
+  { id: "staff", label: "Staff", email: "staff@vernex.demo", password: "staff123" },
+  { id: "sales-executive", label: "Sales Executive", email: "user4@vernex.demo", password: "sales123" },
+  { id: "analyst", label: "Analyst", email: "analyst@vernex.demo", password: "analyst123" },
+  { id: "viewer", label: "Viewer", email: "viewer@vernex.demo", password: "viewer123" }
+];
+
+const roleToLegacyDisplayRole = (roleId: string) => {
+  if (roleId === "owner") return "Owner";
+  if (roleId === "admin" || roleId === "manager") return "Admin";
+  return "Staff";
+};
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -35,8 +51,21 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors }
-  } = useForm<AuthFields>();
+  } = useForm<AuthFields>({
+    defaultValues: {
+      role: mode === "login" ? "owner" : "Owner",
+      companySize: "51-200",
+      companyName: "Vernex Demo Bistro",
+      industry: "Restaurant & Catering",
+      department: departmentsConfig[0]?.id,
+      assignedBranch: branchesConfig[0]?.id
+    }
+  });
+
+  const selectedRole = watch("role");
 
   const onSubmit = handleSubmit((values) => {
     setError("");
@@ -46,27 +75,39 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
     setLoading(true);
     window.setTimeout(() => {
-      if (mode === "login") {
-        AuthService.login(values.email);
-      } else {
-        AuthService.signup({
-          id: `USR-${Date.now()}`,
-          name: values.name,
-          email: values.email,
-          phone: values.phone,
-          role: values.role === "Owner" ? "Owner" : values.role === "Manager" ? "Admin" : "Staff",
-          roleId: (values.role ?? "staff").toLowerCase().replaceAll(" ", "-"),
-          status: "Active",
-          lastActive: "Now",
-          companyName: values.companyName,
-          companySize: values.companySize,
-          industry: values.industry,
-          branchIds: values.assignedBranch ? [values.assignedBranch] : ["branch-chennai"],
-          departmentIds: values.department ? [values.department] : ["dept-sales"]
-        });
+      try {
+        if (mode === "login") {
+          AuthService.login(values.email, values.password, values.role);
+        } else {
+          const roleId = (values.role ?? "staff").toLowerCase().replaceAll(" ", "-");
+          AuthService.signup({
+            id: `USR-${Date.now()}`,
+            name: values.name,
+            email: values.email,
+            password: values.password,
+            phone: values.phone,
+            role: roleToLegacyDisplayRole(roleId),
+            roleId,
+            status: "Active",
+            lastActive: "Now",
+            companyName: values.companyName,
+            companySize: values.companySize,
+            industry: values.industry,
+            companyRegistrationNumber: values.companyRegistrationNumber,
+            numberOfBranches: values.numberOfBranches,
+            team: values.team,
+            reportingManager: values.reportingManager,
+            managerId: values.reportingManager,
+            branchIds: values.assignedBranch ? [values.assignedBranch] : ["branch-chennai"],
+            departmentIds: values.department ? [values.department] : ["dept-sales"]
+          });
+        }
+        setLoading(false);
+        router.push("/dashboard");
+      } catch (authError) {
+        setLoading(false);
+        setError(authError instanceof Error ? authError.message : "Authentication failed.");
       }
-      setLoading(false);
-      router.push("/dashboard");
     }, 550);
   });
 
@@ -75,9 +116,31 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <div>
         <h1 className="text-2xl font-bold">{mode === "login" ? "Login to Vernex" : "Create Vernex account"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Demo authentication for owner, admin, and staff access.
+          Role-aware local authentication backed by seeded demo users and registered accounts.
         </p>
       </div>
+      {mode === "login" ? (
+        <div className="rounded-md border border-border bg-muted/60 p-3">
+          <p className="text-sm font-semibold">Seeded demo accounts</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {roleOptions.slice(0, 6).map((role) => (
+              <button
+                key={role.id}
+                type="button"
+                className="rounded-md bg-white px-3 py-2 text-left text-xs font-medium hover:bg-primary/10"
+                onClick={() => {
+                  setValue("role", role.id);
+                  setValue("email", role.email);
+                  setValue("password", role.password);
+                }}
+              >
+                {role.label}
+                <span className="block text-muted-foreground">{role.email}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {error ? <ErrorState title="Authentication failed" description={error} /> : null}
       {mode === "register" ? (
         <label className="block space-y-1">
@@ -95,6 +158,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         />
         {errors.email ? <span className="text-xs text-danger">{errors.email.message}</span> : null}
       </label>
+      {mode === "login" ? (
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Role</span>
+          <Select {...register("role", { required: "Role is required" })}>
+            {roleOptions.map((role) => (
+              <option key={role.id} value={role.id}>{role.label}</option>
+            ))}
+          </Select>
+        </label>
+      ) : null}
       {mode === "register" ? (
         <label className="block space-y-1">
           <span className="text-sm font-medium">Phone</span>
@@ -121,12 +194,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <label className="block space-y-1">
             <span className="text-sm font-medium">Role</span>
             <Select {...register("role")}>
-              <option>Owner</option>
-              <option>Manager</option>
-              <option>Staff</option>
-              <option>Sales Executive</option>
-              <option>Analyst</option>
-              <option>Viewer</option>
+              {roleOptions.map((role) => (
+                <option key={role.id}>{role.label}</option>
+              ))}
             </Select>
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -149,11 +219,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Company Registration Number</span>
-              <Input {...register("companyRegistrationNumber")} placeholder="Owner specific" />
+              <Input {...register("companyRegistrationNumber", { required: selectedRole === "Owner" })} placeholder="Owner specific" />
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Number Of Branches</span>
-              <Input {...register("numberOfBranches")} placeholder="Owner specific" />
+              <Input {...register("numberOfBranches", { required: selectedRole === "Owner" })} placeholder="Owner specific" />
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Department</span>

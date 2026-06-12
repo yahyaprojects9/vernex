@@ -73,16 +73,22 @@ export type ImportRecord = {
 
 export type StoredUser = User & {
   roleId: string;
+  password: string;
   phone: string;
   companyName: string;
   companySize: string;
   industry: string;
+  companyRegistrationNumber?: string;
+  numberOfBranches?: string;
+  team?: string;
+  reportingManager?: string;
   managerId?: string;
   branchIds: string[];
   departmentIds: string[];
 };
 
 type StoreShape = {
+  schemaVersion: number;
   users: StoredUser[];
   roles: RoleRecord[];
   branches: Branch[];
@@ -104,6 +110,16 @@ type StoreShape = {
 };
 
 const key = "vernex-platform-v3";
+const schemaVersion = 2;
+const rolePasswords: Record<string, string> = {
+  owner: "owner123",
+  manager: "manager123",
+  admin: "admin123",
+  staff: "staff123",
+  "sales-executive": "sales123",
+  analyst: "analyst123",
+  viewer: "viewer123"
+};
 
 function withOrg<T extends object>(record: T, index: number) {
   const branchIds = ["branch-chennai", "branch-coimbatore", "branch-bangalore", "branch-dubai", "branch-london"];
@@ -129,6 +145,16 @@ const seededUsers: StoredUser[] = users.map((user, index) => ({
           : index % 3 === 0
             ? "sales-executive"
             : "staff",
+  password:
+    index === 0
+      ? rolePasswords.owner
+      : user.role === "Admin"
+        ? rolePasswords.admin
+        : index % 4 === 0
+          ? rolePasswords.manager
+          : index % 3 === 0
+            ? rolePasswords["sales-executive"]
+            : rolePasswords.staff,
   phone: `+91 98765${String(10000 + index).slice(-5)}`,
   companyName: "Vernex Demo Bistro",
   companySize: "51-200",
@@ -138,12 +164,119 @@ const seededUsers: StoredUser[] = users.map((user, index) => ({
   departmentIds: [["dept-sales"], ["dept-marketing"], ["dept-operations"], ["dept-finance"], ["dept-kitchen"]][index % 5]
 }));
 
+const namedSeedUsers: StoredUser[] = [
+  {
+    id: "USR-DEMO-OWNER",
+    name: "Vernex Owner",
+    email: "owner@vernex.demo",
+    password: rolePasswords.owner,
+    role: "Owner",
+    roleId: "owner",
+    status: "Active",
+    lastActive: "Now",
+    phone: "+91 90000 00001",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    companyRegistrationNumber: "VRNX-OWN-001",
+    numberOfBranches: "5",
+    branchIds: ["branch-chennai", "branch-coimbatore", "branch-bangalore", "branch-dubai", "branch-london"],
+    departmentIds: ["dept-management", "dept-sales", "dept-operations", "dept-finance"]
+  },
+  {
+    id: "USR-DEMO-MANAGER",
+    name: "Meera Manager",
+    email: "manager@vernex.demo",
+    password: rolePasswords.manager,
+    role: "Admin",
+    roleId: "manager",
+    status: "Active",
+    lastActive: "Today",
+    phone: "+91 90000 00002",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    branchIds: ["branch-chennai"],
+    departmentIds: ["dept-sales"]
+  },
+  {
+    id: "USR-DEMO-ADMIN",
+    name: "Arjun Admin",
+    email: "admin@vernex.demo",
+    password: rolePasswords.admin,
+    role: "Admin",
+    roleId: "admin",
+    status: "Active",
+    lastActive: "Today",
+    phone: "+91 90000 00003",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    branchIds: ["branch-chennai", "branch-coimbatore", "branch-bangalore", "branch-dubai", "branch-london"],
+    departmentIds: ["dept-management", "dept-sales", "dept-operations", "dept-finance", "dept-support", "dept-kitchen"]
+  },
+  {
+    id: "USR-DEMO-STAFF",
+    name: "Sara Staff",
+    email: "staff@vernex.demo",
+    password: rolePasswords.staff,
+    role: "Staff",
+    roleId: "staff",
+    status: "Active",
+    lastActive: "Today",
+    phone: "+91 90000 00004",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    managerId: "USR-DEMO-MANAGER",
+    branchIds: ["branch-chennai"],
+    departmentIds: ["dept-sales"],
+    team: "Inbound Sales",
+    reportingManager: "Meera Manager"
+  },
+  {
+    id: "USR-DEMO-ANALYST",
+    name: "Dev Analyst",
+    email: "analyst@vernex.demo",
+    password: rolePasswords.analyst,
+    role: "Staff",
+    roleId: "analyst",
+    status: "Active",
+    lastActive: "Today",
+    phone: "+91 90000 00005",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    managerId: "USR-DEMO-MANAGER",
+    branchIds: ["branch-chennai", "branch-bangalore"],
+    departmentIds: ["dept-finance"]
+  },
+  {
+    id: "USR-DEMO-VIEWER",
+    name: "Nina Viewer",
+    email: "viewer@vernex.demo",
+    password: rolePasswords.viewer,
+    role: "Staff",
+    roleId: "viewer",
+    status: "Active",
+    lastActive: "Today",
+    phone: "+91 90000 00006",
+    companyName: "Vernex Demo Bistro",
+    companySize: "51-200",
+    industry: "Restaurant & Catering",
+    managerId: "USR-DEMO-MANAGER",
+    branchIds: ["branch-chennai"],
+    departmentIds: ["dept-support"]
+  }
+];
+
 const ownerPermissions = Object.fromEntries(
   permissionsConfig.map((group) => [group.module, group.permissions])
 ) as Record<string, string[]>;
 
 const initialStore: StoreShape = {
-  users: seededUsers,
+  schemaVersion,
+  users: [...namedSeedUsers, ...seededUsers],
   roles: (rolesConfig as RoleRecord[]).map((role) => ({
     ...role,
     permissions:
@@ -199,7 +332,23 @@ export class StorageService {
       this.write(initialStore);
       return clone(initialStore);
     }
-    return { ...clone(initialStore), ...JSON.parse(stored) } as StoreShape;
+    const parsed = JSON.parse(stored) as Partial<StoreShape>;
+    const merged = { ...clone(initialStore), ...parsed } as StoreShape;
+    if (merged.schemaVersion !== schemaVersion || merged.users.some((user) => !user.password || !user.roleId)) {
+      const previousUsers = merged.users;
+      const existingByEmail = new Map(merged.users.map((user) => [user.email.toLowerCase(), user]));
+      merged.users = initialStore.users.map((seedUser) => ({
+        ...seedUser,
+        ...(existingByEmail.get(seedUser.email.toLowerCase()) ?? {}),
+        password: existingByEmail.get(seedUser.email.toLowerCase())?.password ?? seedUser.password,
+        roleId: existingByEmail.get(seedUser.email.toLowerCase())?.roleId ?? seedUser.roleId
+      }));
+      const customUsers = previousUsers.filter((user) => !initialStore.users.some((seedUser) => seedUser.email.toLowerCase() === user.email.toLowerCase()));
+      merged.users = [...merged.users, ...customUsers];
+      merged.schemaVersion = schemaVersion;
+      this.write(merged);
+    }
+    return merged;
   }
 
   static write(data: StoreShape) {
@@ -238,17 +387,24 @@ function collectionService<K extends keyof StoreShape>(collection: K) {
 }
 
 export class AuthService {
-  static login(email: string) {
+  static login(email: string, password: string, roleId?: string) {
     const store = StorageService.read();
-    const user = store.users.find((item) => item.email.toLowerCase() === email.toLowerCase()) ?? store.users[0];
+    const user = store.users.find((item) => item.email.toLowerCase() === email.toLowerCase());
+    if (!user) throw new Error("No user exists for this email. Use a seeded account or register first.");
+    if (user.password !== password) throw new Error("Invalid password for this role-based account.");
+    if (roleId && user.roleId !== roleId) throw new Error(`This account is registered as ${user.roleId}, not ${roleId}.`);
     store.currentUserId = user.id;
     StorageService.write(store);
     return user;
   }
 
   static signup(user: StoredUser) {
+    const store = StorageService.read();
+    if (store.users.some((item) => item.email.toLowerCase() === user.email.toLowerCase())) {
+      throw new Error("A user with this email already exists.");
+    }
     UserService.create(user);
-    return this.login(user.email);
+    return this.login(user.email, user.password, user.roleId);
   }
 
   static currentUser() {

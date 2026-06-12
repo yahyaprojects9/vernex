@@ -47,7 +47,7 @@ export function Sidebar({
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-5">
           {navigationGroups.map((group) => {
-            const isProductGroup = group.label !== "Shared Core Platform";
+            const isProductGroup = group.label !== "Shared Core";
             const groupActive = isGroupActive(group.items);
 
             return (
