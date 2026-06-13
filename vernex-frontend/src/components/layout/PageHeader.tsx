@@ -13,8 +13,8 @@ export function PageHeader({
   breadcrumbs?: string[];
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
+    <div className="mb-5 flex min-w-0 flex-col gap-3 sm:mb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
         {breadcrumbs.length ? (
           <nav className="mb-2 flex flex-wrap items-center gap-1 text-xs font-medium text-muted-foreground">
             {breadcrumbs.map((crumb, index) => (
@@ -25,8 +25,8 @@ export function PageHeader({
             ))}
           </nav>
         ) : null}
-        <h1 className="text-2xl font-bold tracking-normal md:text-3xl">{title}</h1>
-        {description ? <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p> : null}
+        <h1 className="break-words text-2xl font-bold tracking-normal md:text-3xl">{title}</h1>
+        {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
       </div>
       {actionLabel ? <Button>{actionLabel}</Button> : null}
     </div>
