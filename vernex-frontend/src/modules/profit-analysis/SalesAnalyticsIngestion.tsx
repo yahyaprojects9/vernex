@@ -5,8 +5,9 @@ import { AlertTriangle, CheckCircle2, FileJson, FileSpreadsheet, Keyboard, Plug,
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ImportService, SalesAnalyticsService } from "@/lib/services";
+import { AuthService, ImportService, SalesAnalyticsService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import type { SalesRecord } from "@/types";
@@ -16,12 +17,12 @@ const sourceTypes = [
   "Excel",
   "JSON",
   "Manual Entry",
-  "API Import Placeholder",
-  "POS Import Placeholder",
-  "Tally Import Placeholder",
-  "Restaurant Billing Export Placeholder",
-  "ERP Import Placeholder",
-  "Google Sheets Import Placeholder"
+  "API Import",
+  "POS Import",
+  "Tally Import",
+  "Billing Export",
+  "ERP Import",
+  "Google Sheets Import"
 ];
 
 function validateRows(rows: Partial<SalesRecord>[]) {
@@ -42,9 +43,10 @@ function validateRows(rows: Partial<SalesRecord>[]) {
 
 export function SalesAnalyticsIngestion() {
   const store = useLocalStore();
+  const canImport = AuthService.canModify("Profit Analysis", "Import Data");
   const [tab, setTab] = useState("Data Sources");
   const [source, setSource] = useState("CSV");
-  const [manual, setManual] = useState("2026-06-12,BILL-NEW,Paneer Combo,Combos,3,240,720,Dine-in,19:30");
+  const [manual, setManual] = useState("");
   const [previewRows, setPreviewRows] = useState<Partial<SalesRecord>[]>([]);
 
   const validationErrors = useMemo(() => validateRows(previewRows), [previewRows]);
@@ -85,7 +87,7 @@ export function SalesAnalyticsIngestion() {
     ImportService.create({
       id: `IMP-${Date.now()}`,
       importDate: new Date().toISOString().slice(0, 10),
-      importedBy: "Current User",
+      importedBy: AuthService.currentUser()?.name ?? "Current user",
       sourceType: source,
       rowsImported: previewRows.length,
       rowsFailed: 0,
@@ -114,7 +116,7 @@ export function SalesAnalyticsIngestion() {
               onClick={() => setSource(item)}
               className={`dashboard-surface p-4 text-left transition ${source === item ? "ring-2 ring-primary" : ""}`}
             >
-              {item.includes("Excel") ? <FileSpreadsheet className="h-5 w-5 text-primary" /> : item.includes("JSON") ? <FileJson className="h-5 w-5 text-primary" /> : item.includes("Manual") ? <Keyboard className="h-5 w-5 text-primary" /> : item.includes("Placeholder") ? <Plug className="h-5 w-5 text-primary" /> : <Upload className="h-5 w-5 text-primary" />}
+              {item.includes("Excel") ? <FileSpreadsheet className="h-5 w-5 text-primary" /> : item.includes("JSON") ? <FileJson className="h-5 w-5 text-primary" /> : item.includes("Manual") ? <Keyboard className="h-5 w-5 text-primary" /> : item.includes("Import") ? <Plug className="h-5 w-5 text-primary" /> : <Upload className="h-5 w-5 text-primary" />}
               <h3 className="mt-3 font-semibold">{item}</h3>
               <p className="mt-1 text-sm text-muted-foreground">Choose source and continue to preview mapping.</p>
             </button>
@@ -131,19 +133,26 @@ export function SalesAnalyticsIngestion() {
                 {sourceTypes.map((item) => <option key={item}>{item}</option>)}
               </Select>
             </label>
-            <label className="space-y-1">
+            {source === "CSV" || source === "Excel" || source === "JSON" ? <label className="space-y-1">
               <span className="text-sm font-medium">Upload File</span>
-              <Input type="file" />
-            </label>
+              <Input type="file" accept={source === "CSV" ? ".csv" : source === "Excel" ? ".xlsx,.xls" : ".json"} />
+            </label> : null}
           </div>
-          <label className="space-y-1">
+          {source === "Manual Entry" ? <label className="space-y-1">
             <span className="text-sm font-medium">Manual CSV Rows</span>
-            <Textarea value={manual} onChange={(event) => setManual(event.target.value)} />
-          </label>
-          <div className="rounded-md bg-muted p-4 text-sm">
+            <Textarea value={manual} onChange={(event) => setManual(event.target.value)} placeholder="YYYY-MM-DD,BILL-001,Item Name,Category,Quantity,Selling Price,Total Amount,Order Source,HH:MM" />
+          </label> : null}
+          {source.includes("Import") || source === "Billing Export" ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input placeholder="Connector name" />
+              <Input placeholder="Endpoint, sheet URL, or account ID" />
+              <Textarea className="md:col-span-2" placeholder="Mapping, credentials notes, sync schedule, and validation rules" />
+            </div>
+          ) : null}
+          <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
             Column Mapping: Date, Bill Number, Item Name, Category, Quantity, Selling Price, Total Amount, Order Source, Time
           </div>
-          <Button onClick={parseManual}>Preview Data</Button>
+          <Button onClick={parseManual} disabled={source !== "Manual Entry" || !canImport}>Preview Data</Button>
         </div>
       ) : null}
 
@@ -154,7 +163,7 @@ export function SalesAnalyticsIngestion() {
             <div className="mt-4 max-h-80 overflow-auto rounded-md border border-border">
               <table className="w-full min-w-[700px] text-left text-sm">
                 <tbody>
-                  {previewRows.map((row) => (
+                  {previewRows.length ? previewRows.map((row) => (
                     <tr key={row.id} className="border-b border-border">
                       <td className="p-2">{row.date}</td>
                       <td className="p-2">{row.billNumber}</td>
@@ -162,7 +171,11 @@ export function SalesAnalyticsIngestion() {
                       <td className="p-2">{row.category}</td>
                       <td className="p-2">{formatCurrency(Number(row.totalAmount ?? 0))}</td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td className="p-4 text-sm text-muted-foreground">Preview rows will appear after you enter CSV data.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -170,7 +183,9 @@ export function SalesAnalyticsIngestion() {
           <section className="dashboard-surface p-5">
             <h3 className="font-semibold">Validation Engine</h3>
             <div className="mt-4 space-y-2">
-              {validationErrors.length ? (
+              {!previewRows.length ? (
+                <p className="rounded-md bg-muted p-2 text-sm text-muted-foreground">Enter rows to run validation.</p>
+              ) : validationErrors.length ? (
                 validationErrors.map((error) => (
                   <p key={error} className="flex items-center gap-2 rounded-md bg-danger/10 p-2 text-sm text-danger">
                     <AlertTriangle className="h-4 w-4" />
@@ -184,7 +199,7 @@ export function SalesAnalyticsIngestion() {
                 </p>
               )}
             </div>
-            <Button className="mt-4" disabled={!previewRows.length || Boolean(validationErrors.length)} onClick={importRows}>
+            <Button className="mt-4" disabled={!previewRows.length || Boolean(validationErrors.length) || !canImport} onClick={importRows}>
               Import and Generate Analytics
             </Button>
           </section>
@@ -192,6 +207,7 @@ export function SalesAnalyticsIngestion() {
       ) : null}
 
       {tab === "History" ? (
+        store.imports.length ? (
         <div className="dashboard-surface overflow-x-auto">
           <table className="w-full min-w-[800px] text-left text-sm">
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
@@ -206,6 +222,7 @@ export function SalesAnalyticsIngestion() {
             </tbody>
           </table>
         </div>
+        ) : <EmptyState title="No import history yet" description="Imported sales records will appear here." />
       ) : null}
 
       {tab === "Analytics" ? <ChartCard title="Analytics generated from stored sales records" data={trend} type="bar" /> : null}

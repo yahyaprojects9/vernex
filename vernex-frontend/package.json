@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "verify:structure": "node scripts/verify-structure.mjs"
+    "verify:structure": "node scripts/verify-structure.mjs",
+    "test:platform": "node scripts/verify-platform.mjs",
+    "test:fields-roles": "node scripts/verify-fields-roles.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

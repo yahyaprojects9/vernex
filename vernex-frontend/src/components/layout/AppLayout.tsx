@@ -8,11 +8,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="h-dvh overflow-hidden lg:flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopNavbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="mx-auto w-full max-w-[1500px] px-4 py-6 md:px-6 lg:px-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1500px] px-4 py-6 md:px-6 lg:px-8">{children}</div>
+        </main>
       </div>
     </div>
   );

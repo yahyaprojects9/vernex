@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StorageService } from "@/lib/services";
+import { AnalyticsService } from "@/lib/services";
 
 export function useLocalStore() {
-  const [store, setStore] = useState(() => StorageService.read());
+  const [store, setStore] = useState(() => AnalyticsService.visibleStore());
 
   useEffect(() => {
-    const sync = () => setStore(StorageService.read());
+    const sync = () => setStore(AnalyticsService.visibleStore());
     window.addEventListener("storage", sync);
     window.addEventListener("vernex-store-change", sync);
     return () => {

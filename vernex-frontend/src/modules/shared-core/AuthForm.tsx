@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +10,9 @@ import { ErrorState } from "@/components/ui/StateViews";
 import departmentsConfig from "@/config/departments.json";
 import branchesConfig from "@/config/branches.json";
 import { AuthService } from "@/lib/services";
+
+const departmentOptions = departmentsConfig as { id: string; name: string }[];
+const branchOptions = branchesConfig as { id: string; name: string }[];
 
 type AuthFields = {
   name: string;
@@ -29,13 +33,22 @@ type AuthFields = {
 };
 
 const roleOptions = [
-  { id: "owner", label: "Owner", email: "owner@vernex.demo", password: "owner123" },
-  { id: "manager", label: "Manager", email: "manager@vernex.demo", password: "manager123" },
-  { id: "admin", label: "Admin", email: "admin@vernex.demo", password: "admin123" },
-  { id: "staff", label: "Staff", email: "staff@vernex.demo", password: "staff123" },
-  { id: "sales-executive", label: "Sales Executive", email: "user4@vernex.demo", password: "sales123" },
-  { id: "analyst", label: "Analyst", email: "analyst@vernex.demo", password: "analyst123" },
-  { id: "viewer", label: "Viewer", email: "viewer@vernex.demo", password: "viewer123" }
+  { id: "owner", label: "Owner" },
+  { id: "manager", label: "Manager" },
+  { id: "admin", label: "Admin" },
+  { id: "staff", label: "Staff" },
+  { id: "sales-executive", label: "Sales Executive" },
+  { id: "analyst", label: "Analyst" },
+  { id: "viewer", label: "Viewer" }
+];
+
+const mockCredentials = [
+  { role: "Owner", email: "owner@vernex.local", password: "Mock@12345" },
+  { role: "Manager", email: "manager@vernex.local", password: "Mock@12345" },
+  { role: "Admin", email: "admin@vernex.local", password: "Mock@12345" },
+  { role: "Staff", email: "staff@vernex.local", password: "Mock@12345" },
+  { role: "Sales Executive", email: "sales@vernex.local", password: "Mock@12345" },
+  { role: "Analyst", email: "analyst@vernex.local", password: "Mock@12345" }
 ];
 
 const roleToLegacyDisplayRole = (roleId: string) => {
@@ -51,17 +64,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors }
   } = useForm<AuthFields>({
     defaultValues: {
       role: mode === "login" ? "owner" : "Owner",
       companySize: "51-200",
-      companyName: "Vernex Demo Bistro",
-      industry: "Restaurant & Catering",
-      department: departmentsConfig[0]?.id,
-      assignedBranch: branchesConfig[0]?.id
+      companyName: "",
+      industry: "",
+      department: "",
+      assignedBranch: ""
     }
   });
 
@@ -78,6 +90,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       try {
         if (mode === "login") {
           AuthService.login(values.email, values.password, values.role);
+          router.push(AuthService.roleHomePath());
         } else {
           const roleId = (values.role ?? "staff").toLowerCase().replaceAll(" ", "-");
           AuthService.signup({
@@ -98,12 +111,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             team: values.team,
             reportingManager: values.reportingManager,
             managerId: values.reportingManager,
-            branchIds: values.assignedBranch ? [values.assignedBranch] : ["branch-chennai"],
-            departmentIds: values.department ? [values.department] : ["dept-sales"]
+            branchIds: values.assignedBranch ? [values.assignedBranch] : [],
+            departmentIds: values.department ? [values.department] : []
           });
+          router.push(AuthService.roleHomePath());
         }
         setLoading(false);
-        router.push("/dashboard");
       } catch (authError) {
         setLoading(false);
         setError(authError instanceof Error ? authError.message : "Authentication failed.");
@@ -116,36 +129,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <div>
         <h1 className="text-2xl font-bold">{mode === "login" ? "Login to Vernex" : "Create Vernex account"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Role-aware local authentication backed by seeded demo users and registered accounts.
+          Role-aware local authentication. Sign up first to create the first account.
         </p>
       </div>
-      {mode === "login" ? (
-        <div className="rounded-md border border-border bg-muted/60 p-3">
-          <p className="text-sm font-semibold">Seeded demo accounts</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {roleOptions.slice(0, 6).map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                className="rounded-md bg-white px-3 py-2 text-left text-xs font-medium hover:bg-primary/10"
-                onClick={() => {
-                  setValue("role", role.id);
-                  setValue("email", role.email);
-                  setValue("password", role.password);
-                }}
-              >
-                {role.label}
-                <span className="block text-muted-foreground">{role.email}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
       {error ? <ErrorState title="Authentication failed" description={error} /> : null}
       {mode === "register" ? (
         <label className="block space-y-1">
           <span className="text-sm font-medium">Full name</span>
-          <Input {...register("name", { required: "Name is required" })} placeholder="Aarav Sharma" />
+          <Input {...register("name", { required: "Name is required" })} placeholder="Full name" />
           {errors.name ? <span className="text-xs text-danger">{errors.name.message}</span> : null}
         </label>
       ) : null}
@@ -154,7 +145,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <Input
           type="email"
           {...register("email", { required: "Email is required" })}
-          placeholder="admin@vernex.demo"
+          placeholder="you@company.com"
         />
         {errors.email ? <span className="text-xs text-danger">{errors.email.message}</span> : null}
       </label>
@@ -171,7 +162,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       {mode === "register" ? (
         <label className="block space-y-1">
           <span className="text-sm font-medium">Phone</span>
-          <Input {...register("phone", { required: "Phone is required" })} placeholder="+91 98765 43210" />
+          <Input {...register("phone", { required: "Phone is required" })} placeholder="Phone number" />
         </label>
       ) : null}
       <label className="block space-y-1">
@@ -215,7 +206,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Industry</span>
-              <Input {...register("industry")} placeholder="Restaurant, Retail, Services" />
+              <Input {...register("industry")} placeholder="Industry" />
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Company Registration Number</span>
@@ -228,13 +219,15 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             <label className="block space-y-1">
               <span className="text-sm font-medium">Department</span>
               <Select {...register("department")}>
-                {departmentsConfig.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                <option value="">No department yet</option>
+                {departmentOptions.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
               </Select>
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Assigned Branch</span>
               <Select {...register("assignedBranch")}>
-                {branchesConfig.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                <option value="">No branch yet</option>
+                {branchOptions.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
               </Select>
             </label>
             <label className="block space-y-1">
@@ -251,9 +244,23 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Please wait" : mode === "login" ? "Login" : "Register"}
       </Button>
-      <button type="button" className="text-sm font-semibold text-primary" onClick={() => setError("Use any demo email and a password with 6 characters.")}>
-        Test error state
-      </button>
+      {mode === "login" ? (
+        <>
+          <Link href="/forgot-password" className="block text-center text-sm font-semibold text-primary">Forgot password?</Link>
+          <div className="rounded-md border border-border bg-muted/50 p-3">
+            <p className="text-sm font-semibold">Mock login IDs</p>
+            <div className="mt-2 max-h-44 space-y-2 overflow-y-auto text-xs">
+              {mockCredentials.map((item) => (
+                <div key={item.email} className="grid gap-1 rounded-md bg-white p-2 sm:grid-cols-[1fr_1.4fr_1fr]">
+                  <span className="font-semibold">{item.role}</span>
+                  <span>{item.email}</span>
+                  <span>{item.password}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
     </form>
   );
 }

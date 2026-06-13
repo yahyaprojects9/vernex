@@ -1,51 +1,252 @@
-import { FileText, Plus, Upload } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Copy, Edit, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { UploadCard } from "@/components/forms/UploadCard";
 import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Input";
+import { Input, Select, Textarea } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ReportPreview } from "@/modules/shared-core/ReportPreview";
-import { hourlySales, leadTrend, profitReports, salesTrend, sourceSplit } from "@/lib/mock-data";
+import { AnalyticsService, AuthService, FollowUpRuleService } from "@/lib/services";
+import { formatCurrency } from "@/lib/utils";
+import { useLocalStore } from "@/modules/shared-core/useLocalStore";
+import type { FollowUpRule } from "@/types";
+
+type RuleCategory = NonNullable<FollowUpRule["category"]>;
+type RuleConstraint = NonNullable<FollowUpRule["constraintType"]>;
 
 export function ReportsGrid() {
+  const store = useLocalStore();
+  const metrics = AnalyticsService.dashboardMetrics();
+  const [activeReport, setActiveReport] = useState("Daily report");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  function downloadReport() {
+    const content = [
+      "Vernex Platform",
+      `Report: ${activeReport}`,
+      `Date range: ${fromDate || "Start"} to ${toDate || "End"}`,
+      `Leads: ${metrics.leads}`,
+      `Orders: ${metrics.totalOrders}`,
+      `Revenue: ${formatCurrency(metrics.totalSales)}`,
+      `Profit: ${formatCurrency(metrics.profit)}`,
+      `Generated at: ${new Date().toLocaleString()}`
+    ].join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${activeReport.toLowerCase().replaceAll(" ", "-")}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {["Daily report", "Weekly report", "Monthly report"].map((title) => (
-        <article key={title} className="dashboard-surface p-5">
-          <FileText className="h-6 w-6 text-primary" />
-          <h3 className="mt-4 font-semibold">{title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Filter, preview, download, and share from one shell.</p>
-          <Button variant="secondary" className="mt-4">Open report</Button>
-        </article>
-      ))}
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        {["Daily report", "Weekly report", "Monthly report"].map((title) => (
+          <article key={title} className="dashboard-surface p-5">
+            <FileText className="h-6 w-6 text-primary" />
+            <h3 className="mt-4 font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Preview, filter, export, and share from one report shell.</p>
+            <Button variant="secondary" className="mt-4" onClick={() => setActiveReport(title)}>Open report</Button>
+          </article>
+        ))}
+      </div>
+      <section className="dashboard-surface overflow-hidden">
+        <div className="border-b border-border bg-muted/50 p-5">
+          <p className="text-sm font-semibold text-primary">Vernex Platform</p>
+          <h2 className="mt-1 text-xl font-bold">Report Preview: {activeReport}</h2>
+          <p className="text-sm text-muted-foreground">Date range: Current selected period | Filters: Role scope, branch scope, department scope</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">From date</span>
+              <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">To date</span>
+              <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            </label>
+            <div className="flex items-end">
+              <Button variant="secondary" onClick={downloadReport}>Download</Button>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-4 p-5 md:grid-cols-4">
+          <StatCard label="Leads" value={String(metrics.leads)} helper="Scoped records" />
+          <StatCard label="Orders" value={String(metrics.totalOrders)} helper="Imported rows" />
+          <StatCard label="Revenue" value={formatCurrency(metrics.totalSales)} helper="Sales summary" />
+          <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper="After wastage" />
+        </div>
+        <div className="grid gap-5 p-5 pt-0 xl:grid-cols-2">
+          <ChartCard title="Report chart preview" data={AnalyticsService.salesTrend()} type="bar" />
+          <div className="rounded-md border border-border p-4">
+            <h3 className="font-semibold">Insights and recommendations</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li>Data tables, KPIs, and charts will populate from permitted records.</li>
+              <li>{store.salesRecords.length ? "Sales rows are available for this report." : "No sales data available yet."}</li>
+              <li>{store.leads.length ? "Lead performance can be included." : "Create leads to include sales pipeline insights."}</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-border p-5 text-xs text-muted-foreground">
+          Generated by current user | Generated at {new Date().toLocaleString()} | Report footer and export controls
+        </div>
+      </section>
     </div>
   );
 }
 
 export function AiReplyConfigurator() {
+  const store = useLocalStore();
+  const canManageRules = AuthService.canModify("Sales Agent", "Manage Rules");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{
+    ruleName: string;
+    category: RuleCategory;
+    triggerCondition: string;
+    condition: string;
+    constraintType: RuleConstraint;
+    constraintValue: string;
+    response: string;
+    fallback: string;
+    priority: string;
+    leadStatus: FollowUpRule["leadStatus"];
+    status: FollowUpRule["status"];
+  }>({
+    ruleName: "",
+    category: "Pricing",
+    triggerCondition: "",
+    condition: "",
+    constraintType: "Maximum Discount %",
+    constraintValue: "",
+    response: "",
+    fallback: "",
+    priority: "1",
+    leadStatus: "New",
+    status: "Active"
+  });
+
+  const categories: RuleCategory[] = ["Pricing", "Discount", "Negotiation", "Availability", "Support", "Business Hours", "Escalation", "Lead Qualification", "Appointment Booking", "Quotation Requests", "Refund Requests", "Delivery Questions", "Custom Business Rules"];
+  const constraints: RuleConstraint[] = ["None", "Maximum Discount %", "Maximum Order Quantity", "Minimum Budget", "Business Hours", "Service Region", "Escalation Threshold"];
+
+  function resetDraft() {
+    setEditingId(null);
+    setDraft({ ruleName: "", category: "Pricing", triggerCondition: "", condition: "", constraintType: "Maximum Discount %", constraintValue: "", response: "", fallback: "", priority: "1", leadStatus: "New", status: "Active" });
+  }
+
+  function saveRule() {
+    if (!draft.ruleName.trim()) return;
+    const payload = {
+      ...draft,
+      priority: Number(draft.priority || 1),
+      delayTime: "Immediate",
+      template: draft.response || "Use configured response",
+      leadStatus: draft.leadStatus,
+      status: draft.status
+    };
+    if (editingId) {
+      FollowUpRuleService.update(editingId, payload);
+    } else {
+      FollowUpRuleService.create({ id: `RULE-${Date.now()}`, ...payload });
+    }
+    resetDraft();
+  }
+
+  function editRule(rule: (typeof store.rules)[number]) {
+    setEditingId(rule.id);
+    setDraft({
+      ruleName: rule.ruleName,
+      category: rule.category ?? "Pricing",
+      triggerCondition: rule.triggerCondition,
+      condition: rule.condition ?? "",
+      constraintType: rule.constraintType ?? "None",
+      constraintValue: rule.constraintValue ?? "",
+      response: rule.response ?? rule.template ?? "",
+      fallback: rule.fallback ?? "",
+      priority: String(rule.priority ?? 1),
+      leadStatus: rule.leadStatus,
+      status: rule.status
+    });
+  }
+
+  function cloneRule(rule: (typeof store.rules)[number]) {
+    FollowUpRuleService.create({ ...rule, id: `RULE-${Date.now()}`, ruleName: `${rule.ruleName} Copy` });
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
       <section className="dashboard-surface space-y-4 p-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold">Auto-reply rules</h3>
             <p className="text-sm text-muted-foreground">Keep standard responses quick and consistent.</p>
           </div>
-          <StatusBadge tone="success">Active</StatusBadge>
+          <StatusBadge tone={store.rules.some((rule) => rule.status === "Active") ? "success" : "neutral"}>
+            {store.rules.some((rule) => rule.status === "Active") ? "Active" : "No rules"}
+          </StatusBadge>
         </div>
-        {["Ask guest count", "Share package range", "Request event date", "Escalate price negotiation"].map((rule) => (
-          <div key={rule} className="flex items-center justify-between rounded-md border border-border p-3">
-            <span className="text-sm font-medium">{rule}</span>
-            <input type="checkbox" defaultChecked className="h-5 w-5 accent-teal-700" />
+        {store.rules.length ? store.rules.map((rule) => (
+          <div key={rule.id} className="rounded-md border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold">{rule.ruleName}</span>
+                  <StatusBadge tone={rule.status === "Active" ? "success" : "neutral"}>{rule.status}</StatusBadge>
+                  <StatusBadge tone="primary">{rule.category ?? "Custom"}</StatusBadge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{rule.triggerCondition}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Constraint: {rule.constraintType ?? "None"} {rule.constraintValue ? `= ${rule.constraintValue}` : ""}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => editRule(rule)} aria-label="Edit rule" disabled={!canManageRules}><Edit className="h-4 w-4" /></Button>
+                <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => cloneRule(rule)} aria-label="Clone rule" disabled={!canManageRules}><Copy className="h-4 w-4" /></Button>
+                <Button variant="danger" className="h-9 w-9 px-0" onClick={() => FollowUpRuleService.delete(rule.id)} aria-label="Delete rule" disabled={!canManageRules}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => FollowUpRuleService.update(rule.id, { status: rule.status === "Active" ? "Inactive" : "Active" })} disabled={!canManageRules}>
+                {rule.status === "Active" ? "Disable" : "Enable"}
+              </Button>
+            </div>
           </div>
-        ))}
+        )) : <EmptyState title="No auto-reply rules yet" description="Create rules to test and manage AI replies." />}
       </section>
-      <section className="dashboard-surface space-y-3 p-5">
-        <h3 className="font-semibold">Test reply</h3>
-        <Textarea placeholder="Customer asks: Do you cater for 60 people?" />
-        <Button>Generate response</Button>
-        <div className="rounded-md bg-muted p-3 text-sm">
-          Yes, we can support 60 guests. Please share event date, menu preference, and budget range.
+      <section className="dashboard-surface space-y-4 p-5">
+        <h3 className="font-semibold">{editingId ? "Edit AI Rule" : "Create AI Rule"}</h3>
+        <Input placeholder="Rule name" value={draft.ruleName} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, ruleName: event.target.value })} />
+        <div className="grid gap-3 sm:grid-cols-2">
+        <Select value={draft.category} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, category: event.target.value as RuleCategory })}>
+            {categories.map((item) => <option key={item}>{item}</option>)}
+          </Select>
+          <Select value={draft.status} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, status: event.target.value as FollowUpRule["status"] })}>
+            <option>Active</option>
+            <option>Inactive</option>
+          </Select>
+        </div>
+        <Textarea placeholder="Trigger, e.g. customer asks for discount, delivery, quotation, appointment, refund, or support" value={draft.triggerCondition} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, triggerCondition: event.target.value })} />
+        <Textarea placeholder="Condition details" value={draft.condition} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, condition: event.target.value })} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select value={draft.constraintType} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, constraintType: event.target.value as RuleConstraint })}>
+            {constraints.map((item) => <option key={item}>{item}</option>)}
+          </Select>
+          <Input placeholder="Constraint value" value={draft.constraintValue} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, constraintValue: event.target.value })} />
+        </div>
+        <Textarea placeholder="Approved response when request is within the constraint" value={draft.response} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, response: event.target.value })} />
+        <Textarea placeholder="Fallback response when request exceeds the constraint or needs approval" value={draft.fallback} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, fallback: event.target.value })} />
+        <Input type="number" min="1" placeholder="Priority" value={draft.priority} disabled={!canManageRules} onChange={(event) => setDraft({ ...draft, priority: event.target.value })} />
+        <div className="flex justify-center gap-2">
+          <Button onClick={saveRule} disabled={!canManageRules}>{editingId ? "Update Rule" : "Create Rule"}</Button>
+          <Button variant="secondary" onClick={resetDraft} disabled={!canManageRules}>Cancel</Button>
+        </div>
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          Constraint example: if a customer request exceeds the configured limit, use the fallback response and escalate for approval.
         </div>
       </section>
     </div>
@@ -62,9 +263,7 @@ export function SalesReviewPanel() {
       </section>
       <section className="dashboard-surface space-y-4 p-5">
         <h3 className="font-semibold">AI response preview</h3>
-        <p className="rounded-md bg-muted p-4 text-sm">
-          Recommended reply: confirm event size, ask for date, and send the Gold Buffet package first.
-        </p>
+        <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Reviewed responses will appear here.</p>
         <div className="flex gap-2">
           <Button>Approve</Button>
           <Button variant="secondary">Reject</Button>
@@ -75,6 +274,15 @@ export function SalesReviewPanel() {
 }
 
 export function ProfitInsights() {
+  const salesTrend = AnalyticsService.salesTrend();
+  const store = useLocalStore();
+  const hourlySales = Array.from({ length: 24 }, (_, hour) => ({
+    name: `${hour}:00`,
+    value: store.salesRecords
+      .filter((record) => new Date(record.date).getHours() === hour)
+      .reduce((sum, record) => sum + record.totalAmount, 0)
+  }));
+
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       <ChartCard title="Sales trend" data={salesTrend} />
@@ -84,6 +292,16 @@ export function ProfitInsights() {
 }
 
 export function LeadAnalytics() {
+  const store = useLocalStore();
+  const leadTrend = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((name, index) => ({
+    name,
+    value: store.leads.filter((_, rowIndex) => rowIndex % 7 === index).length
+  }));
+  const sourceSplit = ["WhatsApp", "Website", "Email", "Manual"].map((source) => ({
+    name: source,
+    value: store.leads.filter((lead) => lead.source === source).length
+  }));
+
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       <ChartCard title="Lead trend" data={leadTrend} />
@@ -93,7 +311,13 @@ export function LeadAnalytics() {
 }
 
 export function ProfitReportPreview() {
-  const report = profitReports[0];
+  const store = useLocalStore();
+  const report = store.reports[0];
+
+  if (!report) {
+    return <EmptyState title="No profit report yet" description="Create or import sales records to preview generated profit reports." />;
+  }
+
   return (
     <ReportPreview
       title={`${report.period} Profit Report`}
@@ -110,6 +334,8 @@ export function ProfitReportPreview() {
 }
 
 export function UploadHistory() {
+  const store = useLocalStore();
+
   return (
     <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
       <UploadCard title="Upload sales CSV" description="Validate bill rows, items, order sources, and time data." />
@@ -119,12 +345,12 @@ export function UploadHistory() {
           <Button variant="secondary"><Upload className="h-4 w-4" /> Import</Button>
         </div>
         <div className="mt-4 space-y-3">
-          {["June week 1 sales.csv", "May monthly sales.csv", "Weekend delivery export.csv"].map((file) => (
-            <div key={file} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-              <span>{file}</span>
-              <StatusBadge tone="success">Validated</StatusBadge>
+          {store.imports.length ? store.imports.map((item) => (
+            <div key={item.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
+              <span>{item.sourceType || `Import ${item.id}`}</span>
+              <StatusBadge tone={item.status === "Imported" || item.status === "Validated" ? "success" : "neutral"}>{item.status}</StatusBadge>
             </div>
-          ))}
+          )) : <EmptyState title="No uploads yet" description="Imported files and validation results will appear here." />}
         </div>
       </section>
     </div>

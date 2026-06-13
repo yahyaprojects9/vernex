@@ -1,9 +1,1 @@
-[
-  { "id": "dept-sales", "name": "Sales", "managerId": "USR-2", "status": "Active" },
-  { "id": "dept-marketing", "name": "Marketing", "managerId": "USR-3", "status": "Active" },
-  { "id": "dept-operations", "name": "Operations", "managerId": "USR-4", "status": "Active" },
-  { "id": "dept-finance", "name": "Finance", "managerId": "USR-5", "status": "Active" },
-  { "id": "dept-support", "name": "Support", "managerId": "USR-6", "status": "Active" },
-  { "id": "dept-management", "name": "Management", "managerId": "USR-1", "status": "Active" },
-  { "id": "dept-kitchen", "name": "Kitchen", "managerId": "USR-7", "status": "Active" }
-]
+[]

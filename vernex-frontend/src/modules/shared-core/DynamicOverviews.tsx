@@ -4,9 +4,10 @@ import { BarChart3, Bot, CheckCircle2, Flame, ShoppingBag, Snowflake, Timer, Tre
 import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { DataTable } from "@/components/tables/DataTable";
+import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ReportPreview } from "@/modules/shared-core/ReportPreview";
-import { AnalyticsService } from "@/lib/services";
+import { AnalyticsService, AuthService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import type { Lead, MenuItemPerformance } from "@/types";
@@ -15,18 +16,39 @@ export function DashboardOverview() {
   const store = useLocalStore();
   const metrics = AnalyticsService.dashboardMetrics();
   const salesTrend = AnalyticsService.salesTrend();
+  const user = AuthService.currentUser();
+  const role = AuthService.currentRole();
+  const hasBusinessData = Boolean(store.leads.length || store.salesRecords.length || store.wastage.length || store.costs.length || store.productPerformance.length);
+  const roleSummary =
+    user?.roleId === "manager"
+      ? "Manager view: assigned branches, departments, users, leads, and analytics."
+      : user?.roleId === "admin"
+        ? "Admin view: global audit visibility with read-only access."
+        : user?.roleId === "staff"
+          ? "Staff view: personal work, leads, conversations, and tasks."
+          : user?.roleId === "sales-executive"
+            ? "Sales view: assigned leads, conversations, follow-ups, pipeline, and conversions."
+            : user?.roleId === "analyst"
+              ? "Analyst view: reports, charts, analytics, and data review."
+              : "Owner view: company, branch, department, users, sales, profit, roles, and permissions.";
+
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active Users" value={String(store.users.filter((user) => user.status === "Active").length)} helper="Role and hierarchy aware" icon={Users} trend="+12%" />
-        <StatCard label="Sales Agent Leads" value={String(metrics.leads)} helper="Stored lead records" icon={Bot} trend="+18%" />
-        <StatCard label="Total Sales" value={formatCurrency(metrics.totalSales)} helper="Imported or entered sales" icon={TrendingUp} trend="+9%" />
-        <StatCard label="Estimated Profit" value={formatCurrency(metrics.profit)} helper="Sales minus wastage" icon={BarChart3} trend="+6%" />
+      <div className="mb-6 dashboard-surface p-5">
+        <h2 className="text-lg font-semibold">{role?.name ?? "Dashboard"} Homepage</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{roleSummary}</p>
+        {!hasBusinessData ? <p className="mt-3 rounded-md bg-muted p-3 text-sm font-medium">No Data Available. Start by creating records or importing data.</p> : null}
       </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Active Users" value={String(store.users.filter((item) => item.status === "Active").length)} helper="Visible in your role scope" icon={Users} />
+        <StatCard label="Leads" value={String(metrics.leads)} helper={metrics.leads ? "Stored lead records" : "0 Leads"} icon={Bot} />
+        <StatCard label="Revenue" value={formatCurrency(metrics.totalSales)} helper={metrics.totalSales ? "Imported or entered sales" : "0 Sales"} icon={TrendingUp} />
+        <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper={metrics.profit ? "Sales minus wastage" : "0 Profit"} icon={BarChart3} />
+      </div>
+      {hasBusinessData ? <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <ChartCard title="Platform Sales Activity" description="Generated from stored sales records" data={salesTrend} />
         <ChartCard title="Profit Trend" description="Recalculates after imports" data={salesTrend} type="bar" />
-      </div>
+      </div> : <div className="mt-6"><EmptyState title="No chart data available" description="Create records or import data to generate dashboard charts." /></div>}
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <DataTable<Lead>
           data={store.leads.slice(0, 6)}
@@ -47,12 +69,12 @@ export function DashboardOverview() {
           ]}
         />
         <ReportPreview
-          title="Today at a glance"
+          title={`${role?.name ?? "Role"} summary`}
           items={[
-            { label: "Sales Agent", value: `${metrics.leads} visible leads under your role scope` },
-            { label: "Profit Analysis", value: `${metrics.totalOrders} stored sales rows powering analytics` },
-            { label: "Owner Action", value: "Review low-margin items and follow up with hot leads first" },
-            { label: "Next Report", value: "Daily report is ready for export" }
+            { label: "Visibility", value: roleSummary },
+            { label: "Leads", value: `${metrics.leads} visible leads` },
+            { label: "Sales Rows", value: `${metrics.totalOrders} stored sales rows` },
+            { label: "Next Step", value: hasBusinessData ? "Review analytics and reports" : "Create records or import data" }
           ]}
         />
       </div>

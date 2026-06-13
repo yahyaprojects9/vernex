@@ -24,6 +24,9 @@ export type Lead = {
   status: LeadStatus;
   leadScore: LeadScore;
   assignedStaff: string;
+  assignedUserId?: string;
+  branchId?: string;
+  departmentId?: string;
   nextFollowUp: string;
   notes: string;
 };
@@ -48,6 +51,9 @@ export type Conversation = {
   messageHistory: { id: string; sender: "ai" | "customer" | "staff"; body: string; time: string }[];
   internalNotes: string;
   leadId: string;
+  assignedUserId?: string;
+  branchId?: string;
+  departmentId?: string;
 };
 
 export type MessageTemplate = {
@@ -62,11 +68,19 @@ export type MessageTemplate = {
 export type FollowUpRule = {
   id: string;
   ruleName: string;
+  category?: "Pricing" | "Discount" | "Negotiation" | "Availability" | "Support" | "Business Hours" | "Escalation" | "Lead Qualification" | "Appointment Booking" | "Quotation Requests" | "Refund Requests" | "Delivery Questions" | "Custom Business Rules";
   triggerCondition: string;
+  condition?: string;
+  constraintType?: "None" | "Maximum Discount %" | "Maximum Order Quantity" | "Minimum Budget" | "Business Hours" | "Service Region" | "Escalation Threshold";
+  constraintValue?: string;
+  response?: string;
+  fallback?: string;
+  priority?: number;
   delayTime: string;
   template: string;
   leadStatus: LeadStatus;
   status: "Active" | "Inactive";
+  createdBy?: string;
 };
 
 export type CRMStage = {
@@ -81,6 +95,8 @@ export type HandoffRequest = {
   reason: string;
   conversationSummary: string;
   assignedStaff: string;
+  assignedUserId?: string;
+  leadId?: string;
   status: "Pending" | "In Progress" | "Closed";
 };
 
@@ -95,6 +111,9 @@ export type SalesRecord = {
   totalAmount: number;
   orderSource: "Dine-in" | "Swiggy" | "Zomato" | "Takeaway";
   time: string;
+  branchId?: string;
+  departmentId?: string;
+  assignedUserId?: string;
 };
 
 export type MenuItemPerformance = {

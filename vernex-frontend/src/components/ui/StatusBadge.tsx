@@ -18,7 +18,7 @@ export function StatusBadge({
   tone?: StatusTone;
 }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", tones[tone])}>
+    <span className={cn("inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold", tones[tone])}>
       {children}
     </span>
   );

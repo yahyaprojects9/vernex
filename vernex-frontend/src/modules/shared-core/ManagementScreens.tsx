@@ -29,6 +29,7 @@ export function UserManagementScreen() {
       onCreate={(record) => UserService.create(record)}
       onUpdate={UserService.update}
       onDelete={UserService.delete}
+      permissions={{ module: "Shared Core", create: "Create Users", edit: "Edit Users", delete: "Delete Users" }}
       fields={[
         { key: "name", label: "Full Name" },
         { key: "email", label: "Email" },
@@ -56,15 +57,16 @@ export function BranchManagementScreen() {
         title="Branch Management"
         description="Create branches, assign managers and staff, manage status, settings, and branch analytics filters."
         records={store.branches}
-        onCreate={(record) => BranchService.create(record)}
+        onCreate={(record) => BranchService.create({ ...record, status: "Active" })}
         onUpdate={BranchService.update}
         onDelete={BranchService.delete}
+        permissions={{ module: "Shared Core", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
         fields={[
           { key: "name", label: "Branch Name" },
-          { key: "city", label: "City" },
-          { key: "country", label: "Country" },
+          { key: "location", label: "Location" },
           { key: "managerId", label: "Manager", type: "select", options: store.users.map((user) => user.id) },
-          { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Planning"] }
+          { key: "description", label: "Description", type: "textarea" },
+          { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Archived", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
         ]}
       />
     </div>
@@ -78,13 +80,15 @@ export function DepartmentManagementScreen() {
       title="Department Management"
       description="Create departments, assign managers and users, manage visibility, and review department analytics."
       records={store.departments}
-      onCreate={(record) => DepartmentService.create(record)}
+      onCreate={(record) => DepartmentService.create({ ...record, status: "Active" })}
       onUpdate={DepartmentService.update}
       onDelete={DepartmentService.delete}
+      permissions={{ module: "Shared Core", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
       fields={[
         { key: "name", label: "Department Name" },
         { key: "managerId", label: "Manager", type: "select", options: store.users.map((user) => user.id) },
-        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"] }
+        { key: "description", label: "Description", type: "textarea" },
+        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Archived", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
       ]}
     />
   );
@@ -100,6 +104,7 @@ export function LeadManagementScreen() {
       onCreate={(record) => LeadService.create(record)}
       onUpdate={LeadService.update}
       onDelete={LeadService.delete}
+      permissions={{ module: "Sales Agent", create: "Create Lead", edit: "Edit Lead", delete: "Delete Lead", export: "Export Leads", import: "Create Lead" }}
       fields={[
         { key: "leadName", label: "Lead Name" },
         { key: "phone", label: "Phone" },
@@ -127,6 +132,7 @@ export function QuotationManagementScreen() {
       onCreate={(record) => QuotationService.create(record)}
       onUpdate={QuotationService.update}
       onDelete={QuotationService.delete}
+      permissions={{ module: "Sales Agent", create: "Manage Quotations", edit: "Manage Quotations", delete: "Manage Quotations", export: "Manage Quotations" }}
       fields={[
         { key: "quotationTitle", label: "Quotation Title" },
         { key: "servicePackageName", label: "Service/Package Name" },
@@ -150,6 +156,7 @@ export function CostTrackingScreen() {
       onCreate={(record) => CostTrackingService.create(record)}
       onUpdate={CostTrackingService.update}
       onDelete={CostTrackingService.delete}
+      permissions={{ module: "Profit Analysis", create: "Edit Cost", edit: "Edit Cost", delete: "Edit Cost", import: "Import Data", export: "Export Reports" }}
       fields={[
         { key: "itemName", label: "Item Name" },
         { key: "sellingPrice", label: "Selling Price", type: "number" },
@@ -172,6 +179,7 @@ export function WastageTrackingScreen() {
       onCreate={(record) => WastageTrackingService.create(record)}
       onUpdate={WastageTrackingService.update}
       onDelete={WastageTrackingService.delete}
+      permissions={{ module: "Profit Analysis", create: "Edit Wastage", edit: "Edit Wastage", delete: "Edit Wastage", import: "Import Data", export: "Export Reports" }}
       fields={[
         { key: "date", label: "Date", type: "date" },
         { key: "itemName", label: "Item Name" },
@@ -194,11 +202,12 @@ export function FollowUpRuleScreen() {
       onCreate={(record) => FollowUpRuleService.create(record)}
       onUpdate={FollowUpRuleService.update}
       onDelete={FollowUpRuleService.delete}
+      permissions={{ module: "Sales Agent", create: "Manage Rules", edit: "Manage Rules", delete: "Manage Rules" }}
       fields={[
         { key: "ruleName", label: "Rule Name" },
-        { key: "triggerCondition", label: "Trigger Condition" },
-        { key: "delayTime", label: "Delay Time" },
-        { key: "template", label: "Template" },
+        { key: "triggerCondition", label: "Trigger Condition", type: "select", options: ["No response after first contact", "Quotation sent but not accepted", "Follow-up date reached", "Lead marked interested", "Conversation needs human reply", "Custom trigger"] },
+        { key: "delayTime", label: "Delay Time", type: "select", options: ["Immediate", "15 minutes", "1 hour", "4 hours", "1 day", "3 days", "1 week"] },
+        { key: "template", label: "Template", type: "select", options: ["Friendly reminder", "Quotation follow-up", "Availability confirmation", "Need more details", "Escalation notice", "Custom template"] },
         { key: "leadStatus", label: "Lead Status", type: "select", options: ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"] },
         { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"] }
       ]}
@@ -208,20 +217,31 @@ export function FollowUpRuleScreen() {
 
 export function HandoffManagementScreen() {
   const store = useLocalStore();
+  const userNameById = Object.fromEntries(store.users.map((user) => [user.id, user.name]));
+  const assigneeOptions = store.users.map((user) => user.id);
   return (
     <EntityManager<HandoffRequest>
       title="Human Handoff"
       description="Create, assign, close, search, filter, export, and manage AI-to-human handoff requests."
       records={store.handoffs}
-      onCreate={(record) => HandoffService.create(record)}
+      onCreate={(record) => HandoffService.create({ ...record, assignedUserId: record.assignedStaff })}
       onUpdate={HandoffService.update}
       onDelete={HandoffService.delete}
+      permissions={{ module: "Sales Agent", create: "Assign Conversation", edit: "Assign Conversation", delete: "Assign Conversation" }}
       fields={[
-        { key: "customerName", label: "Customer Name" },
+        { key: "customerName", label: "Customer Name", tableClassName: "w-[15%]" },
         { key: "reason", label: "Reason" },
-        { key: "conversationSummary", label: "Conversation Summary", type: "textarea" },
-        { key: "assignedStaff", label: "Assigned Staff" },
-        { key: "status", label: "Status", type: "select", options: ["Pending", "In Progress", "Closed"] }
+        { key: "conversationSummary", label: "Conversation Summary", type: "textarea", tableClassName: "w-[28%]" },
+        {
+          key: "assignedStaff",
+          label: "Assigned To",
+          type: "select",
+          options: assigneeOptions,
+          tableClassName: "w-[14%]",
+          renderValue: (value) => userNameById[value] ?? value
+        },
+        { key: "assignedUserId", label: "Assigned User ID", type: "select", options: assigneeOptions, hideOnCreate: true, hideInTable: true },
+        { key: "status", label: "Status", type: "select", options: ["Pending", "In Progress", "Closed"], tableClassName: "w-[11%]" }
       ]}
     />
   );
@@ -237,6 +257,7 @@ export function ProductPerformanceScreen() {
       onCreate={(record) => ProductPerformanceService.create(record)}
       onUpdate={ProductPerformanceService.update}
       onDelete={ProductPerformanceService.delete}
+      permissions={{ module: "Profit Analysis", create: "Import Data", edit: "View Analytics", delete: "Import Data", import: "Import Data", export: "Export Reports" }}
       fields={[
         { key: "itemName", label: "Item Name" },
         { key: "category", label: "Category" },
@@ -260,6 +281,7 @@ export function ImportHistoryScreen() {
       onCreate={(record) => ImportService.create(record)}
       onUpdate={ImportService.update}
       onDelete={ImportService.delete}
+      permissions={{ module: "Profit Analysis", create: "Import Data", edit: "Import Data", delete: "Import Data", export: "Export Reports" }}
       fields={[
         { key: "importDate", label: "Import Date", type: "date" },
         { key: "importedBy", label: "Imported By" },

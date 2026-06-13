@@ -1,15 +1,5 @@
-import Link from "next/link";
-import { AuthForm } from "@/modules/shared-core/AuthForm";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  return (
-    <main className="grid min-h-screen place-items-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <AuthForm mode="login" />
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          New to Vernex? <Link className="font-semibold text-primary" href="/auth/register">Create an account</Link>
-        </p>
-      </div>
-    </main>
-  );
+export default function LegacyLoginPage() {
+  redirect("/login");
 }

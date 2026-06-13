@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function useDemoData<T>(loader: () => Promise<T>) {
+export function useLocalData<T>(loader: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export function useDemoData<T>(loader: () => Promise<T>) {
         if (active) setData(result);
       })
       .catch(() => {
-        if (active) setError("Unable to load demo data.");
+        if (active) setError("Unable to load local data.");
       })
       .finally(() => {
         if (active) setLoading(false);
