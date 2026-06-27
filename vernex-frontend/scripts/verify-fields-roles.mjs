@@ -171,7 +171,7 @@ includesAll(entity, "Modal CRUD and Excel import", [
   "flex-nowrap",
   "whitespace-nowrap"
 ]);
-includesAll(userManagement, "User directory behavior", ["All users", "Add user", "Import", "Export", "Template", "MoreVertical", "View details", "Edit user", "Set inactive", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "aspect-square"]);
+includesAll(userManagement, "User directory behavior", ["Total users", "User name", "Access", "Last active", "Date added", "Add user", "Import", "Export", "Template", "MoreVertical", "label=\"View\"", "label=\"Edit\"", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "aspect-square", "min-w-[860px]"]);
 assert(!userManagement.includes('type="checkbox"'), "User Management must not render unused checkboxes");
 includesAll(management, "Organization tables without row selection", ['title="Branch Management"', 'title="Department Management"', "allowSelection={false}"]);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");

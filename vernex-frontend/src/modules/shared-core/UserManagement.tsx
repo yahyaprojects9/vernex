@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { Download, Edit, Eye, MoreVertical, Plus, Search, SlidersHorizontal, Upload, UserCheck, UserX } from "lucide-react";
+import { Download, Edit, Eye, MoreVertical, Plus, Search, SlidersHorizontal, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { FormModal } from "@/components/modals/FormModal";
@@ -211,15 +211,10 @@ export function UserManagementScreen() {
     setImportOpen(false);
   }
 
-  function toggleStatus(user: StoredUser) {
-    OrganizationService.updateUser(user.id, { status: user.status === "Active" ? "Inactive" : "Active" });
-    setMenuId(null);
-  }
-
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-xl font-bold">All users <span className="font-normal text-muted-foreground">{filtered.length}</span></h2>
+        <h2 className="text-xl font-bold">Total users <span className="font-normal text-muted-foreground">{filtered.length}</span></h2>
         <div className="flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
           <Button variant="secondary" className={`shrink-0 ${filtersOpen ? "border-slate-400 bg-slate-200 text-slate-900 hover:bg-slate-200" : ""}`} aria-pressed={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}><SlidersHorizontal className="h-4 w-4" />Filters</Button>
           {canCreate ? <Button className="shrink-0" onClick={openCreate}><Plus className="h-4 w-4" />Add user</Button> : null}
@@ -248,36 +243,57 @@ export function UserManagementScreen() {
         </div> : null}
       </div>
 
-      <div className="dashboard-surface overflow-visible">
-        <div className="hidden grid-cols-[minmax(240px,1.25fr)_minmax(270px,1fr)_120px_120px_44px] gap-4 bg-muted/70 px-5 py-3 text-xs font-semibold uppercase text-muted-foreground xl:grid">
-          <span>User</span><span>Access</span><span>Last active</span><span>Date added</span><span />
-        </div>
-        <div className="divide-y divide-border">
-          {visible.map((user) => {
-            const branchId = user.branchId ?? user.branchIds[0];
-            const departmentId = user.departmentId ?? user.departmentIds[0];
-            return <article key={user.id} className="relative grid gap-3 py-4 pl-4 pr-14 hover:bg-muted/30 xl:grid-cols-[minmax(240px,1.25fr)_minmax(270px,1fr)_120px_120px_44px] xl:items-center xl:px-5">
-              <div className="flex min-w-0 items-center gap-3">
-                {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="aspect-square h-11 w-11 shrink-0 rounded-full border border-border object-cover" /> : <span className="grid aspect-square h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
-                <div className="min-w-0"><h3 className="truncate font-semibold">{user.name}</h3><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
-              </div>
-              <div className="flex min-w-0 flex-wrap gap-1.5">
-                <AccessBadge tone="role">{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
-                {branchId ? <AccessBadge tone="branch">{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
-                {departmentId ? <AccessBadge tone="department">{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
-              </div>
-              <div className="text-sm"><span className="mr-2 text-xs font-medium text-muted-foreground xl:hidden">Last active</span>{user.lastActive || "-"}</div>
-              <div className="text-sm"><span className="mr-2 text-xs font-medium text-muted-foreground xl:hidden">Date added</span>{user.joiningDate || "-"}</div>
-              <div className="absolute right-3 top-4 xl:static xl:justify-self-end">
-                <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
-                {menuId === user.id ? <div className="absolute right-0 z-30 mt-1 w-44 rounded-md border border-border bg-white p-1 shadow-soft">
-                  <MenuButton icon={Eye} label="View details" onClick={() => { setViewing(user); setMenuId(null); }} />
-                  <MenuButton icon={Edit} label="Edit user" disabled={!canEdit} onClick={() => { openEdit(user); setMenuId(null); }} />
-                  <MenuButton icon={user.status === "Active" ? UserX : UserCheck} label={user.status === "Active" ? "Set inactive" : "Set active"} disabled={!canEdit} onClick={() => toggleStatus(user)} />
-                </div> : null}
-              </div>
-            </article>;
-          })}
+      <div className="dashboard-surface">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] table-fixed text-left">
+            <colgroup>
+              <col className="w-[30%]" />
+              <col className="w-[35%]" />
+              <col className="w-[14%]" />
+              <col className="w-[15%]" />
+              <col className="w-[6%]" />
+            </colgroup>
+            <thead className="bg-muted/70 text-xs font-semibold uppercase text-muted-foreground">
+              <tr>
+                <th className="px-5 py-3">User name</th>
+                <th className="px-5 py-3">Access</th>
+                <th className="whitespace-nowrap px-5 py-3">Last active</th>
+                <th className="whitespace-nowrap px-5 py-3">Date added</th>
+                <th className="px-3 py-3"><span className="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {visible.map((user, index) => {
+                const branchId = user.branchId ?? user.branchIds[0];
+                const departmentId = user.departmentId ?? user.departmentIds[0];
+                const menuAbove = index >= visible.length - 2;
+                return <tr key={user.id} className="hover:bg-muted/30">
+                  <td className="px-5 py-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="aspect-square h-11 w-11 shrink-0 rounded-full border border-border object-cover" /> : <span className="grid aspect-square h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
+                      <div className="min-w-0"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex min-w-0 flex-wrap gap-1.5">
+                      <AccessBadge tone="role">{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
+                      {departmentId ? <AccessBadge tone="department">{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
+                      {branchId ? <AccessBadge tone="branch">{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-sm">{user.lastActive || "-"}</td>
+                  <td className="whitespace-nowrap px-5 py-4 text-sm">{user.joiningDate || "-"}</td>
+                  <td className="relative px-3 py-4 text-right">
+                    <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} aria-expanded={menuId === user.id} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
+                    {menuId === user.id ? <div className={`absolute right-3 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl ${menuAbove ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"}`}>
+                      <MenuButton icon={Eye} label="View" onClick={() => { setViewing(user); setMenuId(null); }} />
+                      <MenuButton icon={Edit} label="Edit" disabled={!canEdit} onClick={() => { openEdit(user); setMenuId(null); }} />
+                    </div> : null}
+                  </td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
         </div>
         {!visible.length ? <p className="p-8 text-center text-sm text-muted-foreground">No users match the current search and filters.</p> : null}
         <div className="flex items-center justify-between border-t border-border px-4 py-3">
