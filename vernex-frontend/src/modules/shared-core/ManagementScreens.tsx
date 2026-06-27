@@ -48,6 +48,7 @@ export function UserManagementScreen() {
       onDelete={UserService.delete}
       permissions={{ module: "Organization", create: "Create Users", edit: "Edit Users", export: "View Users" }}
       allowDelete={false}
+      allowSelection={false}
       validate={(payload, editing) => {
         if (editing) return payload.name && payload.email && payload.roleId ? null : "Name, email, and role are required.";
         const result = userSchema.safeParse(payload);
@@ -58,8 +59,8 @@ export function UserManagementScreen() {
         { key: "name", label: "Full Name" },
         { key: "email", label: "Email" },
         { key: "phone", label: "Phone" },
-        { key: "password", label: "Password", hideInTable: true },
-        { key: "confirmPassword", label: "Confirm Password", hideInTable: true },
+        { key: "password", label: "Password", hideInTable: true, hideInView: true },
+        { key: "confirmPassword", label: "Confirm Password", hideInTable: true, hideInView: true },
         { key: "roleId", label: "Role", type: "select", options: store.roles.filter((role) => role.status !== "Inactive").map((role) => role.id), optionLabels: roleName, renderValue: (value) => roleName[value] ?? value },
         { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), optionLabels: branchName, renderValue: (value, record) => branchName[value] ?? branchName[String((record.branchIds as string[])?.[0])] ?? value },
         { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), optionLabels: departmentName, renderValue: (value, record) => departmentName[value] ?? departmentName[String((record.departmentIds as string[])?.[0])] ?? value },

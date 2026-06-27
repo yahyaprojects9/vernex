@@ -9,11 +9,12 @@ import { Input, Select, Textarea } from "@/components/ui/Input";
 import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { roleSchema } from "@/schemas/organization";
+import { FormModal } from "@/components/modals/FormModal";
 
 type RoleDraft = {
   name: string;
   description: string;
-  displayOrder: string;
+  hierarchyLevel: string;
   status: "Active" | "Inactive";
   permissions: Record<string, string[]>;
 };
@@ -21,7 +22,7 @@ type RoleDraft = {
 const emptyDraft = (): RoleDraft => ({
   name: "",
   description: "",
-  displayOrder: "10",
+  hierarchyLevel: "25",
   status: "Active",
   permissions: {}
 });
@@ -36,7 +37,7 @@ export function RoleManagement() {
   const canCreate = AuthService.can("create", "Role");
   const canEdit = AuthService.can("update", "Role") || AuthService.can("manage", "Role");
   const sortedRoles = useMemo(
-    () => [...store.roles].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
+    () => [...store.roles].sort((a, b) => b.level - a.level),
     [store.roles]
   );
   const viewingRole = store.roles.find((role) => role.id === viewingId);
@@ -47,7 +48,7 @@ export function RoleManagement() {
     setDraft({
       name: role.name,
       description: role.description,
-      displayOrder: String(role.displayOrder ?? 0),
+      hierarchyLevel: String(role.level),
       status: role.status ?? "Active",
       permissions: role.permissions ?? {}
     });
@@ -76,7 +77,7 @@ export function RoleManagement() {
 
   function saveRole() {
     if (!draft) return;
-    const validation = roleSchema.safeParse({ ...draft, displayOrder: Number(draft.displayOrder) });
+    const validation = roleSchema.safeParse({ ...draft, hierarchyLevel: Number(draft.hierarchyLevel) });
     if (!validation.success) {
       setValidationError(validation.error.issues[0]?.message ?? "Invalid role details.");
       return;
@@ -86,7 +87,7 @@ export function RoleManagement() {
       RoleService.update(editingId, {
         name: draft.name,
         description: draft.description,
-        displayOrder: Number(draft.displayOrder),
+        level: Number(draft.hierarchyLevel),
         status: draft.status
       });
       Object.entries(draft.permissions).forEach(([module, permissions]) =>
@@ -97,8 +98,8 @@ export function RoleManagement() {
         id: `role-${Date.now()}`,
         name: draft.name,
         description: draft.description,
-        level: 25,
-        displayOrder: Number(draft.displayOrder),
+        level: Number(draft.hierarchyLevel),
+        displayOrder: 100 - Number(draft.hierarchyLevel),
         status: draft.status,
         createdAt: new Date().toISOString(),
         protected: false,
@@ -127,16 +128,16 @@ export function RoleManagement() {
       <div className="dashboard-surface overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
-            <tr>{["S.No", "Role Name", "Description", "Actions"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
+            <tr>{["S.No", "Role Name", "Description", "Actions"].map((heading) => <th key={heading} className="whitespace-nowrap px-4 py-3">{heading}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sortedRoles.map((role, index) => {
               return (
                 <tr key={role.id}>
-                  <td className="px-4 py-3">{index + 1}</td>
-                  <td className="px-4 py-3 font-semibold">{role.name}</td>
-                  <td className="max-w-sm px-4 py-3 text-muted-foreground">{role.description}</td>
-                  <td className="px-4 py-3"><div className="flex gap-2">
+                  <td className="whitespace-nowrap px-4 py-3">{index + 1}</td>
+                  <td className="whitespace-nowrap px-4 py-3 font-semibold">{role.name}</td>
+                  <td className="max-w-sm truncate whitespace-nowrap px-4 py-3 text-muted-foreground">{role.description}</td>
+                  <td className="whitespace-nowrap px-4 py-3"><div className="flex flex-nowrap gap-2">
                     <Button variant="secondary" className="h-9 w-9 px-0" aria-label="View role" onClick={() => { setViewingId(role.id); setDraft(null); }}><Eye className="h-4 w-4" /></Button>
                     <Button variant="secondary" className="h-9 w-9 px-0" aria-label="Edit role" disabled={!canEdit || role.id === "admin"} onClick={() => editRole(role)}><Edit className="h-4 w-4" /></Button>
                   </div></td>
@@ -147,23 +148,22 @@ export function RoleManagement() {
         </table>
       </div>
 
-      {draft ? (
-        <section className="dashboard-surface space-y-5 p-5">
-          <h2 className="text-lg font-semibold">{editingId ? "Edit Role" : "Create Role"}</h2>
+      <FormModal open={Boolean(draft)} title={editingId ? "Edit Role" : "Add Role"} onClose={() => { setDraft(null); setEditingId(null); }} className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        {draft ? <div className="space-y-5">
           {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger">{validationError}</p> : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Input placeholder="Role name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-            <Input type="number" placeholder="Display order" value={draft.displayOrder} onChange={(event) => setDraft({ ...draft, displayOrder: event.target.value })} />
+            <label className="space-y-1"><span className="text-sm font-medium">Hierarchy Level</span><Input type="number" min="1" max="100" value={draft.hierarchyLevel} onChange={(event) => setDraft({ ...draft, hierarchyLevel: event.target.value })} /></label>
             <Textarea className="md:col-span-2" placeholder="Description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
             <Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select>
           </div>
           <PermissionMatrix permissions={draft.permissions} editable onToggle={togglePermission} onToggleModule={setModule} />
-          <div className="flex justify-end gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => setDraft(null)}>Cancel</Button></div>
-        </section>
-      ) : null}
+          <div className="flex justify-end gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => { setDraft(null); setEditingId(null); }}>Cancel</Button></div>
+        </div> : null}
+      </FormModal>
 
-      {viewingRole ? (
-        <section className="dashboard-surface space-y-5 p-5">
+      <FormModal open={Boolean(viewingRole)} title={viewingRole?.name ?? "Role Details"} onClose={() => setViewingId(null)} className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        {viewingRole ? <div className="space-y-5">
           <div><h2 className="text-lg font-semibold">{viewingRole.name}</h2><p className="text-sm text-muted-foreground">{viewingRole.description}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Info label="Hierarchy Level" value={String(viewingRole.level)} />
@@ -171,8 +171,8 @@ export function RoleManagement() {
             <Info label="Accessible Modules" value={String(Object.values(viewingRole.permissions ?? {}).filter((items) => items.length).length)} />
           </div>
           <PermissionMatrix permissions={viewingRole.permissions ?? {}} />
-        </section>
-      ) : null}
+        </div> : null}
+      </FormModal>
 
       <section className="dashboard-surface p-5">
         <h2 className="text-lg font-semibold">Organization Hierarchy</h2>

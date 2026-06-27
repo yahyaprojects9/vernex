@@ -5,7 +5,7 @@ const requiredText = z.string().trim().min(1, "This field is required");
 export const roleSchema = z.object({
   name: requiredText,
   description: requiredText,
-  displayOrder: z.coerce.number().int().nonnegative(),
+  hierarchyLevel: z.coerce.number().int().min(1).max(100),
   status: z.enum(["Active", "Inactive"])
 });
 

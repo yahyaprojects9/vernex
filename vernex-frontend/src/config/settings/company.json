@@ -9,6 +9,6 @@
     { "slug": "industry", "label": "Industry", "description": "Primary business industry.", "control": "text", "placeholder": "Industry", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
     { "slug": "companySize", "label": "Company Size", "description": "Current employee range.", "control": "dropdown", "defaultValue": "", "options": ["1-10", "11-50", "51-200", "201-500", "500+"], "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
     { "slug": "website", "label": "Website", "description": "Public company website.", "control": "url", "placeholder": "https://", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
-    { "slug": "address", "label": "Address", "description": "Registered company address.", "control": "textarea", "placeholder": "Company address", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] }
+    { "slug": "address", "label": "Address", "description": "Registered company address.", "control": "text", "placeholder": "Company address", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] }
   ]
 }

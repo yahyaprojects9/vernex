@@ -160,6 +160,18 @@ includesAll(entity, "Entity shared controls", [
   "canDelete",
   "canImport"
 ]);
+includesAll(entity, "Modal CRUD and Excel import", [
+  "FormModal",
+  "ConfirmModal",
+  "read-excel-file/browser",
+  "setViewing",
+  "allowSelection",
+  "Export",
+  "Template",
+  "flex-nowrap",
+  "whitespace-nowrap"
+]);
+includesAll(management, "User modal table behavior", ["allowSelection={false}", "allowDelete={false}", "Profile Picture"]);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
@@ -227,7 +239,7 @@ const crm = read("src/app/dashboard/sales-agent/crm-pipeline/page.tsx");
 includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost", "LeadService.update"]);
 
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
-includesAll(roles, "Permission matrix UI", ["Organization Roles", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
+includesAll(roles, "Permission matrix UI", ["Organization Roles", "FormModal", "Hierarchy Level", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
 
@@ -250,6 +262,15 @@ assert(
 
 const profitReports = read("src/app/dashboard/profit-analysis/profit-reports/page.tsx");
 includesAll(profitReports, "Profit report fields", ["Daily", "Weekly", "Monthly", "From date", "To date", "Download Report"]);
+
+const organizationReports = read("src/modules/shared-core/CommonSections.tsx");
+includesAll(organizationReports, "Organization report layout", ["min-w-[620px]", "grid-cols-4", "Report chart preview"]);
+assert(!organizationReports.includes("Insights and recommendations"), "Organization reports must not render the removed insights panel");
+
+const settings = read("src/modules/shared-core/SettingsForm.tsx");
+includesAll(settings, "Staged settings", ["setDraft", "saveSettings", "Save Settings", 'field.control === "color"', "Company logo preview"]);
+
+includesAll(crm, "Optimistic CRM drag", ["pipelineLeads", "setPipelineLeads", "moveLead"]);
 
 const attachedPlanValues = [
   "Ravi Kumar",
