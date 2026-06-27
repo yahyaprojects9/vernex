@@ -28,7 +28,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function hexToHsl(hex: string) {
+function hexToHsl(hex?: string) {
+  if (!hex) return "187 75% 32%";
   const value = hex.replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(value)) return "187 75% 32%";
   const r = parseInt(value.slice(0, 2), 16) / 255;

@@ -768,6 +768,7 @@ function appendMissingById<T extends { id: string }>(current: T[], defaults: T[]
 
 function withRuntimeDefaults(store: StoreShape): StoreShape {
   const next = clone(store);
+  next.settings = { ...clone(settingsConfig), ...(next.settings ?? {}) };
   next.users = appendMissingById(next.users, [...mockUsers, ...demoUsers]).map((user) => {
     const seeded = [...mockUsers, ...demoUsers].find((item) => item.id === user.id);
     if (!seeded) return user;
