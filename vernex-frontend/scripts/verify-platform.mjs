@@ -188,6 +188,9 @@ assertIncludes(conversation, ["max-h-56 overflow-y-auto", "Transfer To", "patchA
 
 const sidebar = read("src/components/layout/Sidebar.tsx");
 assertIncludes(sidebar, ["overflow-y-auto", "prefetch", "<details key={group.label} open"], "Sidebar");
+assertIncludes(sidebar, ["Collapse menu", "Resize sidebar", "lg:w-[var(--sidebar-width)]"], "Responsive sidebar controls");
+const formModal = read("src/components/modals/FormModal.tsx");
+assertIncludes(formModal, ["max-h-[calc(100dvh-1.5rem)]", "overflow-hidden", "overflow-y-auto", "shadow-2xl"], "Scrollable modal");
 
 const topNavbar = read("src/components/layout/TopNavbar.tsx");
 assertIncludes(topNavbar, ["Profile", "Logout", "AuthService.logout", "Phone", "Company", "Industry"], "Top navbar profile");

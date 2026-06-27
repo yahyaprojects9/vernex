@@ -221,7 +221,7 @@ export function UserManagementScreen() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-xl font-bold">All users <span className="font-normal text-muted-foreground">{filtered.length}</span></h2>
         <div className="flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
-          <Button variant="secondary" className="shrink-0" onClick={() => setFiltersOpen((value) => !value)}><SlidersHorizontal className="h-4 w-4" />Filters</Button>
+          <Button variant="secondary" className={`shrink-0 ${filtersOpen ? "border-slate-400 bg-slate-200 text-slate-900 hover:bg-slate-200" : ""}`} aria-pressed={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}><SlidersHorizontal className="h-4 w-4" />Filters</Button>
           {canCreate ? <Button className="shrink-0" onClick={openCreate}><Plus className="h-4 w-4" />Add user</Button> : null}
           {canCreate ? <Button variant="secondary" className="shrink-0" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4" />Import</Button> : null}
           {canExport ? <Button variant="secondary" className="shrink-0" onClick={() => void exportUsers(false)}><Download className="h-4 w-4" />Export</Button> : null}
@@ -235,12 +235,16 @@ export function UserManagementScreen() {
           <Input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} className="min-h-11 pl-9" placeholder="Search users" />
         </label>
         {filtersOpen ? <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
-          <Select value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }} aria-label="Filter by role">
-            <option>All</option>{store.roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-          </Select>
-          <Select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filter by status">
-            <option>All</option><option>Active</option><option>Inactive</option><option>Suspended</option>
-          </Select>
+          <Field label="Role">
+            <Select value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }} aria-label="Filter by role">
+              <option value="All">All roles</option>{store.roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Status">
+            <Select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filter by status">
+              <option value="All">All statuses</option><option>Active</option><option>Inactive</option><option>Suspended</option>
+            </Select>
+          </Field>
         </div> : null}
       </div>
 
@@ -252,19 +256,19 @@ export function UserManagementScreen() {
           {visible.map((user) => {
             const branchId = user.branchId ?? user.branchIds[0];
             const departmentId = user.departmentId ?? user.departmentIds[0];
-            return <article key={user.id} className="relative grid gap-3 px-4 py-4 hover:bg-muted/30 md:grid-cols-[minmax(260px,1.4fr)_minmax(280px,1fr)_130px_130px_48px] md:items-center md:px-5">
+            return <article key={user.id} className="relative grid gap-3 py-4 pl-4 pr-14 hover:bg-muted/30 md:grid-cols-[minmax(260px,1.4fr)_minmax(280px,1fr)_130px_130px_48px] md:items-center md:px-5">
               <div className="flex min-w-0 items-center gap-3">
-                {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="h-11 w-11 shrink-0 rounded-full object-cover" /> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
+                {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="aspect-square h-11 w-11 shrink-0 rounded-full border border-border object-cover" /> : <span className="grid aspect-square h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
                 <div className="min-w-0"><h3 className="truncate font-semibold">{user.name}</h3><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
               </div>
               <div className="flex min-w-0 flex-wrap gap-1.5">
-                <AccessBadge>{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
-                {branchId ? <AccessBadge>{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
-                {departmentId ? <AccessBadge>{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
+                <AccessBadge tone="role">{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
+                {branchId ? <AccessBadge tone="branch">{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
+                {departmentId ? <AccessBadge tone="department">{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
               </div>
               <div className="text-sm"><span className="mr-2 text-xs text-muted-foreground md:hidden">Last active</span>{user.lastActive || "-"}</div>
               <div className="text-sm"><span className="mr-2 text-xs text-muted-foreground md:hidden">Date added</span>{user.joiningDate || "-"}</div>
-              <div className="absolute right-3 top-4 md:static">
+              <div className="absolute right-3 top-4 md:static md:justify-self-end">
                 <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
                 {menuId === user.id ? <div className="absolute right-0 z-30 mt-1 w-44 rounded-md border border-border bg-white p-1 shadow-soft">
                   <MenuButton icon={Eye} label="View details" onClick={() => { setViewing(user); setMenuId(null); }} />
@@ -282,7 +286,7 @@ export function UserManagementScreen() {
         </div>
       </div>
 
-      <FormModal open={formOpen} title={editing ? "Edit user" : "Add user"} onClose={() => setFormOpen(false)} className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <FormModal open={formOpen} title={editing ? "Edit user" : "Add user"} onClose={() => setFormOpen(false)} className="max-w-2xl">
         <div className="grid gap-4 sm:grid-cols-2">
           {error ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
           <label className="space-y-1 sm:col-span-2"><span className="text-sm font-medium">Profile picture</span><Input type="file" accept="image/*" onChange={(event) => {
@@ -321,8 +325,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="space-y-1"><span className="text-sm font-medium">{label}</span>{children}</label>;
 }
 
-function AccessBadge({ children }: { children: React.ReactNode }) {
-  return <span className="max-w-36 truncate rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{children}</span>;
+function AccessBadge({ children, tone }: { children: React.ReactNode; tone: "role" | "branch" | "department" }) {
+  const tones = {
+    role: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    branch: "border-sky-200 bg-sky-50 text-sky-700",
+    department: "border-violet-200 bg-violet-50 text-violet-700"
+  };
+  return <span className={`max-w-40 truncate rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
 }
 
 function MenuButton({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Eye; label: string; onClick: () => void; disabled?: boolean }) {

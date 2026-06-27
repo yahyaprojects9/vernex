@@ -171,8 +171,9 @@ includesAll(entity, "Modal CRUD and Excel import", [
   "flex-nowrap",
   "whitespace-nowrap"
 ]);
-includesAll(userManagement, "User directory behavior", ["All users", "Add user", "Import", "Export", "Template", "MoreVertical", "View details", "Edit user", "Set inactive", "FormModal", "read-excel-file/browser"]);
+includesAll(userManagement, "User directory behavior", ["All users", "Add user", "Import", "Export", "Template", "MoreVertical", "View details", "Edit user", "Set inactive", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "aspect-square"]);
 assert(!userManagement.includes('type="checkbox"'), "User Management must not render unused checkboxes");
+includesAll(management, "Organization tables without row selection", ['title="Branch Management"', 'title="Department Management"', "allowSelection={false}"]);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
@@ -253,6 +254,7 @@ includesAll(guard, "Route permission guard", ["AbilityProvider", "canAccessPath"
 const sidebar = read("src/components/layout/Sidebar.tsx");
 includesAll(sidebar, "Permission sidebar", ["canAccessItem", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "canViewModule"]);
 includesAll(sidebar, "Blank logo state", ["No company logo", "companyName"]);
+includesAll(sidebar, "Collapsible resizable sidebar", ["vernex-sidebar-width", "vernex-sidebar-collapsed", "Collapse menu", "Resize sidebar", "cursor-col-resize"]);
 
 const navigation = JSON.parse(read("src/config/navigation.json"));
 const organizationOrder = navigation[0].items.map((item) => item.label);

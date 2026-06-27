@@ -38,6 +38,7 @@ export function BranchManagementScreen() {
         onCreate={(record) => BranchService.create({ ...record, status: "Active", city: record.location ?? "", country: "", createdAt: new Date().toISOString() })}
         onUpdate={BranchService.update}
         onDelete={BranchService.delete}
+        allowSelection={false}
         permissions={{ module: "Organization", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
         validate={(payload) => {
           const result = branchSchema.safeParse(payload);
@@ -71,6 +72,7 @@ export function DepartmentManagementScreen() {
       onCreate={(record) => OrganizationService.createDepartment({ ...record, managerId: creator?.id ?? record.managerId, status: "Active", createdAt: new Date().toISOString() })}
       onUpdate={OrganizationService.updateDepartment}
       onDelete={DepartmentService.delete}
+      allowSelection={false}
       permissions={{ module: "Organization", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
       validate={(payload) => {
         const result = departmentSchema.safeParse(payload);
