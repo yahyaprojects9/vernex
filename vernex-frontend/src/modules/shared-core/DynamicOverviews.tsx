@@ -29,8 +29,8 @@ export function DashboardOverview() {
         <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper={metrics.profit ? "Sales minus wastage" : "0 Profit"} icon={BarChart3} />
       </div>
       {hasBusinessData ? <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <ChartCard title="Platform Sales Activity" description="Generated from stored sales records" data={salesTrend} />
-        <ChartCard title="Profit Trend" description="Recalculates after imports" data={salesTrend} type="bar" />
+        <ChartCard title="Platform Sales Activity" data={salesTrend} />
+        <ChartCard title="Profit Trend" data={salesTrend} type="bar" />
       </div> : <div className="mt-6"><EmptyState title="No chart data available" description="Create records or import data to generate dashboard charts." /></div>}
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <DataTable<Lead>

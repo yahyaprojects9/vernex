@@ -33,7 +33,6 @@ export function BranchManagementScreen() {
       </div>
       <EntityManager
         title="Branch Management"
-        description="Create branches, assign managers and staff, manage status, settings, and branch analytics filters."
         records={store.branches}
         onCreate={(record) => BranchService.create({ ...record, status: "Active", city: record.location ?? "", country: "", createdAt: new Date().toISOString() })}
         onUpdate={BranchService.update}
@@ -70,7 +69,6 @@ export function DepartmentManagementScreen() {
   return (
     <EntityManager
       title="Department Management"
-      description="Create departments, assign managers and users, manage visibility, and review department analytics."
       records={store.departments}
       onCreate={(record) => OrganizationService.createDepartment({ ...record, managerId: creator?.id ?? record.managerId, status: "Active", createdAt: new Date().toISOString() })}
       onUpdate={OrganizationService.updateDepartment}
@@ -104,7 +102,6 @@ export function LeadManagementScreen() {
   return (
     <EntityManager<Lead>
       title="Lead Management"
-      description="Create, update, delete, filter, bulk export, and assign leads. Analytics recalculate from stored lead data."
       records={store.leads}
       onCreate={(record) => LeadService.create({ ...record, assignedStaff: userLabels[record.assignedUserId ?? ""] ?? "", branchId: assignableUsers.find((user) => user.id === record.assignedUserId)?.branchIds[0], departmentId: assignableUsers.find((user) => user.id === record.assignedUserId)?.departmentIds[0] })}
       onUpdate={LeadService.update}
@@ -133,7 +130,6 @@ export function QuotationManagementScreen() {
   return (
     <EntityManager<Quotation>
       title="Quotation Management"
-      description="Create, edit, preview, send, filter, export, and delete quotations with local persistence."
       records={store.quotations}
       onCreate={(record) => QuotationService.create(record)}
       onUpdate={QuotationService.update}
@@ -159,7 +155,6 @@ export function CostTrackingScreen() {
   return (
     <EntityManager<CostTracking>
       title="Cost Tracking"
-      description="Create, update, delete, search, filter, export, and review food-cost margin records."
       records={store.costs}
       onCreate={(record) => CostTrackingService.create(record)}
       onUpdate={CostTrackingService.update}
@@ -182,7 +177,6 @@ export function WastageTrackingScreen() {
   return (
     <EntityManager<WastageEntry>
       title="Wastage Tracking"
-      description="Create, edit, delete, filter, export, and analyze wastage records."
       records={store.wastage}
       onCreate={(record) => WastageTrackingService.create(record)}
       onUpdate={WastageTrackingService.update}
@@ -205,7 +199,6 @@ export function FollowUpRuleScreen() {
   return (
     <EntityManager<FollowUpRule>
       title="Follow-Up Automation"
-      description="Create, edit, delete, search, filter, export, and status-manage automation rules."
       records={store.rules}
       onCreate={(record) => FollowUpRuleService.create(record)}
       onUpdate={FollowUpRuleService.update}
@@ -230,7 +223,6 @@ export function HandoffManagementScreen() {
   return (
     <EntityManager<HandoffRequest>
       title="Human Handoff"
-      description="Create, assign, close, search, filter, export, and manage AI-to-human handoff requests."
       records={store.handoffs}
       onCreate={(record) => HandoffService.create({ ...record, assignedUserId: record.assignedStaff })}
       onUpdate={HandoffService.update}
@@ -260,7 +252,6 @@ export function ProductPerformanceScreen() {
   return (
     <EntityManager<MenuItemPerformance>
       title="Product Performance"
-      description="Create, edit, delete, search, filter, export, and review menu item performance records."
       records={store.productPerformance}
       onCreate={(record) => ProductPerformanceService.create(record)}
       onUpdate={ProductPerformanceService.update}
@@ -284,7 +275,6 @@ export function ImportHistoryScreen() {
   return (
     <EntityManager
       title="Import History"
-      description="Manage imports, validation errors, statuses, and export audit logs."
       records={store.imports}
       onCreate={(record) => ImportService.create(record)}
       onUpdate={ImportService.update}

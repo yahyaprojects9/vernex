@@ -28,7 +28,6 @@ export type FieldConfig = {
 
 export function EntityManager<T extends { id: string; status?: string }>({
   title,
-  description,
   records,
   fields,
   onCreate,
@@ -45,7 +44,6 @@ export function EntityManager<T extends { id: string; status?: string }>({
   validate
 }: {
   title: string;
-  description: string;
   records: T[];
   fields: FieldConfig[];
   onCreate: (record: T) => void;
@@ -201,7 +199,6 @@ export function EntityManager<T extends { id: string; status?: string }>({
       <div className="dashboard-surface flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
         {showHeading ? <div>
           <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
         </div> : null}
         <div className="flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
           {canCreate ? <Button className="shrink-0" onClick={startCreate}>

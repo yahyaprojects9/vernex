@@ -20,14 +20,12 @@ const ResponsiveContainer = dynamic(
 
 export function ChartCard({
   title,
-  description,
   data,
   dataKey = "value",
   nameKey = "name",
   type = "area"
 }: {
   title: string;
-  description?: string;
   data: Record<string, string | number>[];
   dataKey?: string;
   nameKey?: string;
@@ -43,7 +41,6 @@ export function ChartCard({
     <section className="dashboard-surface p-5">
       <div className="mb-4">
         <h3 className="text-base font-semibold">{title}</h3>
-        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">

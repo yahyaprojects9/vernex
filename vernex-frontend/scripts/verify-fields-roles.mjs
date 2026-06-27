@@ -126,6 +126,7 @@ includesAll(services, "V5 seeded acceptance dataset", [
 const management = read("src/modules/shared-core/ManagementScreens.tsx");
 const userManagement = read("src/modules/shared-core/UserManagement.tsx");
 const managementPrimitives = read("src/components/ui/ManagementPrimitives.tsx");
+assert(!management.includes("description="), "Management screens must not include page-level description props");
 const screenFields = {
   "Branch Management": ["Branch Name", "Branch Code", "Location", "Assigned Manager", "Phone", "Operating Hours", "Description", "Status", "Active", "Inactive", "Suspended", "Closed"],
   "Department Management": ["Department Name", "Branch", "Manager", "Department Members", "Description", "Status", "Active", "Inactive", "Suspended"],
@@ -161,6 +162,7 @@ includesAll(entity, "Entity shared controls", [
   "canDelete",
   "canImport"
 ]);
+assert(!entity.includes("description: string;"), "EntityManager must not expose a page-level description contract");
 includesAll(entity, "Modal CRUD and Excel import", [
   "FormModal",
   "ConfirmModal",
