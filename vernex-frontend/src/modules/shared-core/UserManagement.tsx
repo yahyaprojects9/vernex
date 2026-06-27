@@ -270,7 +270,12 @@ export function UserManagementScreen() {
                 return <tr key={user.id} className="hover:bg-muted/30">
                   <td className="px-5 py-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="aspect-square h-11 w-11 shrink-0 rounded-full border border-border object-cover" /> : <span className="grid aspect-square h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
+                      <span
+                        className="grid shrink-0 place-items-center overflow-hidden border border-primary/20 bg-primary/10 font-bold text-primary"
+                        style={{ width: 44, height: 44, minWidth: 44, maxWidth: 44, minHeight: 44, maxHeight: 44, borderRadius: "50%" }}
+                      >
+                        {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="h-full w-full object-cover" /> : user.name.charAt(0)}
+                      </span>
                       <div className="min-w-0"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
                     </div>
                   </td>
