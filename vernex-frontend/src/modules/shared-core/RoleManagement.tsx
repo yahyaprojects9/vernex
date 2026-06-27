@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, Edit, Eye, Plus } from "lucide-react";
+import { Edit, Eye, Plus } from "lucide-react";
 import permissionsConfig from "@/config/permissions.json";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
-import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
+import { AuthService, RolePermissionService, RoleService, type RoleRecord, type StoredUser } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { roleSchema } from "@/schemas/organization";
 import { FormModal } from "@/components/modals/FormModal";
@@ -32,7 +32,6 @@ export function RoleManagement() {
   const [draft, setDraft] = useState<RoleDraft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string[]>(["owner"]);
   const [validationError, setValidationError] = useState("");
   const canCreate = AuthService.can("create", "Role");
   const canEdit = AuthService.can("update", "Role") || AuthService.can("manage", "Role");
@@ -41,6 +40,7 @@ export function RoleManagement() {
     [store.roles]
   );
   const viewingRole = store.roles.find((role) => role.id === viewingId);
+  const hierarchy = useMemo(() => buildHierarchy(store.users, store.roles), [store.roles, store.users]);
 
   function editRole(role: RoleRecord) {
     setEditingId(role.id);
@@ -176,10 +176,8 @@ export function RoleManagement() {
 
       <section className="dashboard-surface p-5">
         <h2 className="text-lg font-semibold">Organization Hierarchy</h2>
-        <div className="mt-4 space-y-2">
-          {store.users.filter((user) => user.roleId === "owner").map((owner) => (
-            <HierarchyNode key={owner.id} userId={owner.id} depth={0} expanded={expanded} setExpanded={setExpanded} />
-          ))}
+        <div className="mt-4 space-y-3">
+          {hierarchy.map((node) => <HierarchyNode key={node.user.id} node={node} depth={0} store={store} />)}
         </div>
       </section>
     </div>
@@ -208,21 +206,68 @@ function Info({ label, value }: { label: string; value: string }) {
   return <div className="rounded-md bg-muted p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>;
 }
 
-function HierarchyNode({ userId, depth, expanded, setExpanded }: { userId: string; depth: number; expanded: string[]; setExpanded: (ids: string[]) => void }) {
-  const store = useLocalStore();
-  const user = store.users.find((item) => item.id === userId);
-  if (!user) return null;
-  const children = store.users.filter((item) => item.managerId === user.id || item.reportingManager === user.id);
-  const isOpen = expanded.includes(user.id);
+type HierarchyEntry = {
+  user: StoredUser;
+  level: number;
+  children: HierarchyEntry[];
+};
+
+function buildHierarchy(users: StoredUser[], roles: RoleRecord[]) {
+  const roleLevels = new Map(roles.map((role) => [role.id, role.level]));
+  const usersById = new Map(users.map((user) => [user.id, user]));
+  const parentByUser = new Map<string, string>();
+  const sorted = [...users].sort((a, b) => (roleLevels.get(b.roleId) ?? 0) - (roleLevels.get(a.roleId) ?? 0) || a.name.localeCompare(b.name));
+
+  for (const user of sorted) {
+    const level = roleLevels.get(user.roleId) ?? 0;
+    const explicitId = user.managerId ?? user.reportingManager;
+    const explicit = explicitId ? usersById.get(explicitId) : undefined;
+    if (explicit && (roleLevels.get(explicit.roleId) ?? 0) > level) {
+      parentByUser.set(user.id, explicit.id);
+      continue;
+    }
+
+    const parent = sorted
+      .filter((candidate) => candidate.id !== user.id && (roleLevels.get(candidate.roleId) ?? 0) > level)
+      .sort((a, b) => {
+        const aDepartment = a.departmentIds.some((id) => user.departmentIds.includes(id)) ? 1 : 0;
+        const bDepartment = b.departmentIds.some((id) => user.departmentIds.includes(id)) ? 1 : 0;
+        const aBranch = a.branchIds.some((id) => user.branchIds.includes(id)) ? 1 : 0;
+        const bBranch = b.branchIds.some((id) => user.branchIds.includes(id)) ? 1 : 0;
+        return bDepartment - aDepartment
+          || bBranch - aBranch
+          || (roleLevels.get(a.roleId) ?? 0) - (roleLevels.get(b.roleId) ?? 0)
+          || a.name.localeCompare(b.name);
+      })[0];
+    if (parent) parentByUser.set(user.id, parent.id);
+  }
+
+  const entries = new Map(sorted.map((user) => [user.id, { user, level: roleLevels.get(user.roleId) ?? 0, children: [] as HierarchyEntry[] }]));
+  const roots: HierarchyEntry[] = [];
+  for (const user of sorted) {
+    const entry = entries.get(user.id);
+    if (!entry) continue;
+    const parent = entries.get(parentByUser.get(user.id) ?? "");
+    if (parent) parent.children.push(entry);
+    else roots.push(entry);
+  }
+  const order = (items: HierarchyEntry[]) => items.sort((a, b) => b.level - a.level || a.user.name.localeCompare(b.user.name)).forEach((item) => order(item.children));
+  order(roots);
+  return roots;
+}
+
+function HierarchyNode({ node, depth, store }: { node: HierarchyEntry; depth: number; store: ReturnType<typeof useLocalStore> }) {
+  const { user, level, children } = node;
   const role = store.roles.find((item) => item.id === user.roleId)?.name ?? user.roleId;
   const branch = store.branches.find((item) => user.branchIds.includes(item.id))?.name ?? "Unassigned";
   const department = store.departments.find((item) => user.departmentIds.includes(item.id))?.name ?? "Unassigned";
-  return <div style={{ marginLeft: depth * 20 }}>
-    <button className="flex w-full items-center gap-3 rounded-md border border-border p-3 text-left hover:bg-muted" onClick={() => setExpanded(isOpen ? expanded.filter((id) => id !== user.id) : [...expanded, user.id])}>
-      {children.length ? isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> : <span className="w-4" />}
-      {user.avatar ? <Image src={user.avatar} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-full object-cover" /> : <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>}
-      <span><span className="block font-semibold">{user.name} - {role}</span><span className="block text-xs text-muted-foreground">{department} | {branch}</span></span>
-    </button>
-    {isOpen ? children.map((child) => <HierarchyNode key={child.id} userId={child.id} depth={depth + 1} expanded={expanded} setExpanded={setExpanded} />) : null}
+  return <div className="relative" style={{ marginLeft: Math.min(depth, 6) * 24 }}>
+    {depth ? <span className="absolute -left-4 top-0 h-1/2 w-4 rounded-bl-md border-b border-l border-border" /> : null}
+    <div className="flex min-w-0 items-center gap-3 rounded-md border border-border bg-white p-3">
+      {user.avatar ? <Image src={user.avatar} alt="" width={36} height={36} unoptimized className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>}
+      <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{user.name} - {role}</span><span className="block truncate text-xs text-muted-foreground">{department} | {branch}</span></span>
+      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Level {level}</span>
+    </div>
+    {children.length ? <div className="mt-2 space-y-2 border-l border-border pl-2">{children.map((child) => <HierarchyNode key={child.user.id} node={child} depth={depth + 1} store={store} />)}</div> : null}
   </div>;
 }

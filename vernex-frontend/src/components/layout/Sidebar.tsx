@@ -29,14 +29,14 @@ export function Sidebar({
   useEffect(() => {
     const savedWidth = Number(window.localStorage.getItem("vernex-sidebar-width"));
     const savedCollapsed = window.localStorage.getItem("vernex-sidebar-collapsed") === "true";
-    if (savedWidth >= 240 && savedWidth <= 380) setWidth(savedWidth);
+    if (savedWidth >= 240 && savedWidth <= 320) setWidth(savedWidth);
     setCollapsed(savedCollapsed);
   }, []);
 
   useEffect(() => {
     function onMove(event: MouseEvent) {
       if (!dragging.current) return;
-      const nextWidth = Math.min(380, Math.max(240, event.clientX));
+      const nextWidth = Math.min(320, Math.max(240, event.clientX));
       setCollapsed(false);
       setWidth(nextWidth);
     }

@@ -40,6 +40,8 @@ export function BranchManagementScreen() {
         onDelete={BranchService.delete}
         allowSelection={false}
         showHeading={false}
+        actionMenu
+        searchPlaceholder="Search branch"
         permissions={{ module: "Organization", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
         validate={(payload) => {
           const result = branchSchema.safeParse(payload);
@@ -75,6 +77,8 @@ export function DepartmentManagementScreen() {
       onDelete={DepartmentService.delete}
       allowSelection={false}
       showHeading={false}
+      actionMenu
+      searchPlaceholder="Search department"
       permissions={{ module: "Organization", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
       validate={(payload) => {
         const result = departmentSchema.safeParse(payload);

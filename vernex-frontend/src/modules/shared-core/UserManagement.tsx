@@ -103,6 +103,10 @@ export function UserManagementScreen() {
 
   function saveUser() {
     if (editing) {
+      if (!AuthService.canEditUser(editing.id, draft.roleId)) {
+        setError("You cannot edit a user or assign a role above your hierarchy level.");
+        return;
+      }
       if (!draft.name || !draft.email || !draft.roleId) {
         setError("Name, email, and role are required.");
         return;
@@ -292,7 +296,7 @@ export function UserManagementScreen() {
                     <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} aria-expanded={menuId === user.id} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
                     {menuId === user.id ? <div className={`absolute right-3 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl ${menuAbove ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"}`}>
                       <MenuButton icon={Eye} label="View" onClick={() => { setViewing(user); setMenuId(null); }} />
-                      <MenuButton icon={Edit} label="Edit" disabled={!canEdit} onClick={() => { openEdit(user); setMenuId(null); }} />
+                      <MenuButton icon={Edit} label="Edit" disabled={!canEdit || !AuthService.canEditUser(user.id)} onClick={() => { openEdit(user); setMenuId(null); }} />
                     </div> : null}
                   </td>
                 </tr>;

@@ -174,6 +174,8 @@ includesAll(entity, "Modal CRUD and Excel import", [
 includesAll(userManagement, "User directory behavior", ["Total users", "User name", "Access", "Last active", "Date added", "Add user", "Import", "Export", "Template", "MoreVertical", "label=\"View\"", "label=\"Edit\"", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "minWidth: 44", "maxHeight: 44", "borderRadius: \"50%\"", "min-w-[860px]"]);
 assert(!userManagement.includes('type="checkbox"'), "User Management must not render unused checkboxes");
 includesAll(management, "Organization tables without row selection", ['title="Branch Management"', 'title="Department Management"', "allowSelection={false}"]);
+includesAll(management, "Organization table search and actions", ['searchPlaceholder="Search branch"', 'searchPlaceholder="Search department"', "actionMenu"]);
+includesAll(entity, "Kebab table actions", ["MoreVertical", "ActionMenuButton", "actionMenuId", 'label="View"', 'label="Edit"']);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
@@ -243,6 +245,7 @@ includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
 includesAll(roles, "Permission matrix UI", ["Organization Roles", "FormModal", "Hierarchy Level", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
 includesAll(roles, "Compact labeled role form", ["Role Name", "Example: Branch Manager", "Description", "Example: Manages branch operations", "Status", "max-w-2xl"]);
+includesAll(roles, "Level-derived organization tree", ["buildHierarchy", "parentByUser", "managerId", "reportingManager", "Level {level}", "children.map"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
 
@@ -256,6 +259,8 @@ const sidebar = read("src/components/layout/Sidebar.tsx");
 includesAll(sidebar, "Permission sidebar", ["canAccessItem", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "canViewModule"]);
 includesAll(sidebar, "Blank logo state", ["No company logo", "companyName"]);
 includesAll(sidebar, "Collapsible resizable sidebar", ["vernex-sidebar-width", "vernex-sidebar-collapsed", "Collapse menu", "Resize sidebar", "cursor-col-resize"]);
+includesAll(sidebar, "Bounded sidebar width", ["Math.min(320", "savedWidth <= 320"]);
+includesAll(read("src/lib/services.ts"), "Hierarchy-aware user editing", ["canEditUser", "targetRole.level > actorRole.level", "nextRole.level > actorRole.level"]);
 
 const navigation = JSON.parse(read("src/config/navigation.json"));
 const organizationOrder = navigation[0].items.map((item) => item.label);

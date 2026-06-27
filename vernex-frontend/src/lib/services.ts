@@ -971,6 +971,19 @@ export class AuthService {
     return this.ability().can(action, subject);
   }
 
+  static canEditUser(targetId: string, nextRoleId?: string) {
+    const store = StorageService.read();
+    const actor = this.currentUser(store);
+    const target = store.users.find((user) => user.id === targetId);
+    const actorRole = actor ? store.roles.find((role) => role.id === actor.roleId) : null;
+    const targetRole = target ? store.roles.find((role) => role.id === target.roleId) : null;
+    const nextRole = nextRoleId ? store.roles.find((role) => role.id === nextRoleId) : null;
+    if (!actor || !target || !actorRole || !targetRole || !this.can("update", "User")) return false;
+    if (targetRole.level > actorRole.level) return false;
+    if (nextRole && nextRole.level > actorRole.level) return false;
+    return true;
+  }
+
   static canViewModule(module: string) {
     if (module === "Sales Agent") return this.can("read", "Lead") || this.can("read", "Conversation") || this.can("read", "Quotation");
     if (module === "Profit Analysis") return this.can("read", "Dashboard") || this.can("read", "Report");
@@ -1011,12 +1024,14 @@ export const BranchService = collectionService("branches");
 export const DepartmentService = collectionService("departments");
 export const OrganizationService = {
   updateUser: (id: string, patch: Partial<StoredUser>) => {
+    if (!AuthService.canEditUser(id, patch.roleId)) return false;
     const normalized = {
       ...patch,
       branchIds: patch.branchId ? [patch.branchId] : patch.branchIds,
       departmentIds: patch.departmentId ? [patch.departmentId] : patch.departmentIds
     };
     UserService.update(id, normalized);
+    return true;
   },
   createDepartment: (record: Department) => {
     DepartmentService.create(record);

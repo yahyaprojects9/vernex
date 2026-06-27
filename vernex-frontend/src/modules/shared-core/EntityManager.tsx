@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Edit, Eye, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Download, Edit, Eye, MoreVertical, Plus, Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
@@ -39,6 +39,8 @@ export function EntityManager<T extends { id: string; status?: string }>({
   allowDelete = true,
   allowSelection = true,
   showHeading = true,
+  actionMenu = false,
+  searchPlaceholder,
   validate
 }: {
   title: string;
@@ -61,6 +63,8 @@ export function EntityManager<T extends { id: string; status?: string }>({
   allowDelete?: boolean;
   allowSelection?: boolean;
   showHeading?: boolean;
+  actionMenu?: boolean;
+  searchPlaceholder?: string;
   validate?: (payload: Record<string, unknown>, editing: boolean) => string | null;
 }) {
   const [query, setQuery] = useState("");
@@ -71,6 +75,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [importOpen, setImportOpen] = useState(false);
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [importText, setImportText] = useState("");
   const [validationError, setValidationError] = useState("");
   const canCreate = permissions?.create ? AuthService.canModify(permissions.module, permissions.create) : AuthService.canModify();
@@ -248,7 +253,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
       <div className="dashboard-surface grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_14rem]">
         <label className="relative min-w-0">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 pl-9 text-base" placeholder={`Search ${title.toLowerCase()}`} />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 pl-9 text-base" placeholder={searchPlaceholder ?? `Search ${title.toLowerCase()}`} />
         </label>
         <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-12">
           {filterValues.map((value) => (
@@ -344,7 +349,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {visible.map((record) => (
+              {visible.map((record, index) => (
                 <tr key={record.id} className="hover:bg-muted/40">
                   {allowSelection ? <td className="px-4 py-4 align-top">
                     <input
@@ -367,18 +372,21 @@ export function EntityManager<T extends { id: string; status?: string }>({
                       </td>
                     );
                   })}
-                  <td className="px-4 py-4 align-top">
-                    <div className="flex flex-nowrap gap-2">
-                      <Button variant="secondary" className="h-9 w-9 shrink-0 px-0" onClick={() => setViewing(record)} aria-label="View">
-                        <Eye className="h-4 w-4" />
+                  <td className="relative whitespace-nowrap px-4 py-4 align-top">
+                    {actionMenu ? <>
+                      <Button variant="ghost" className="h-9 w-9 shrink-0 px-0" onClick={() => setActionMenuId(actionMenuId === record.id ? null : record.id)} aria-label="Actions" aria-expanded={actionMenuId === record.id}>
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
-                      <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => startEdit(record)} aria-label="Edit" disabled={!canEdit}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {allowDelete ? <Button variant="danger" className="h-9 w-9 shrink-0 px-0" onClick={() => setDeleting(record)} aria-label="Delete" disabled={!canDelete}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button> : null}
-                    </div>
+                      {actionMenuId === record.id ? <div className={`absolute right-4 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl ${index >= visible.length - 2 ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"}`}>
+                        <ActionMenuButton icon={Eye} label="View" onClick={() => { setViewing(record); setActionMenuId(null); }} />
+                        <ActionMenuButton icon={Edit} label="Edit" disabled={!canEdit} onClick={() => { startEdit(record); setActionMenuId(null); }} />
+                        {allowDelete ? <ActionMenuButton icon={Trash2} label="Delete" disabled={!canDelete} danger onClick={() => { setDeleting(record); setActionMenuId(null); }} /> : null}
+                      </div> : null}
+                    </> : <div className="flex flex-nowrap gap-2">
+                        <Button variant="secondary" className="h-9 w-9 shrink-0 px-0" onClick={() => setViewing(record)} aria-label="View"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => startEdit(record)} aria-label="Edit" disabled={!canEdit}><Edit className="h-4 w-4" /></Button>
+                        {allowDelete ? <Button variant="danger" className="h-9 w-9 shrink-0 px-0" onClick={() => setDeleting(record)} aria-label="Delete" disabled={!canDelete}><Trash2 className="h-4 w-4" /></Button> : null}
+                      </div>}
                   </td>
                 </tr>
               ))}
@@ -391,4 +399,14 @@ export function EntityManager<T extends { id: string; status?: string }>({
       )}
     </section>
   );
+}
+
+function ActionMenuButton({ icon: Icon, label, onClick, disabled = false, danger = false }: {
+  icon: typeof Eye;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return <button type="button" disabled={disabled} onClick={onClick} className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 ${danger ? "text-danger" : ""}`}><Icon className="h-4 w-4" />{label}</button>;
 }
