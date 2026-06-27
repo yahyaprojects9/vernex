@@ -16,29 +16,12 @@ export function DashboardOverview() {
   const store = useLocalStore();
   const metrics = AnalyticsService.dashboardMetrics();
   const salesTrend = AnalyticsService.salesTrend();
-  const user = AuthService.currentUser();
   const role = AuthService.currentRole();
   const hasBusinessData = Boolean(store.leads.length || store.salesRecords.length || store.wastage.length || store.costs.length || store.productPerformance.length);
-  const roleSummary =
-    user?.roleId === "manager"
-      ? "Manager view: assigned branches, departments, users, leads, and analytics."
-      : user?.roleId === "admin"
-        ? "Admin view: global audit visibility with read-only access."
-        : user?.roleId === "staff"
-          ? "Staff view: personal work, leads, conversations, and tasks."
-          : user?.roleId === "sales-executive"
-            ? "Sales view: assigned leads, conversations, follow-ups, pipeline, and conversions."
-            : user?.roleId === "analyst"
-              ? "Analyst view: reports, charts, analytics, and data review."
-              : "Owner view: company, branch, department, users, sales, profit, roles, and permissions.";
 
   return (
     <>
-      <div className="mb-6 dashboard-surface p-5">
-        <h2 className="text-lg font-semibold">{role?.name ?? "Dashboard"} Homepage</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{roleSummary}</p>
-        {!hasBusinessData ? <p className="mt-3 rounded-md bg-muted p-3 text-sm font-medium">No Data Available. Start by creating records or importing data.</p> : null}
-      </div>
+      {!hasBusinessData ? <p className="mb-6 rounded-md bg-muted p-3 text-sm font-medium">No Data Available. Start by creating records or importing data.</p> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Active Users" value={String(store.users.filter((item) => item.status === "Active").length)} helper="Visible in your role scope" icon={Users} />
         <StatCard label="Leads" value={String(metrics.leads)} helper={metrics.leads ? "Stored lead records" : "0 Leads"} icon={Bot} />
@@ -71,7 +54,6 @@ export function DashboardOverview() {
         <ReportPreview
           title={`${role?.name ?? "Role"} summary`}
           items={[
-            { label: "Visibility", value: roleSummary },
             { label: "Leads", value: `${metrics.leads} visible leads` },
             { label: "Sales Rows", value: `${metrics.totalOrders} stored sales rows` },
             { label: "Next Step", value: hasBusinessData ? "Review analytics and reports" : "Create records or import data" }
