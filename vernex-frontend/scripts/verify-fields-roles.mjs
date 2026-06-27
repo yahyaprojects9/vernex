@@ -125,6 +125,7 @@ includesAll(services, "V5 seeded acceptance dataset", [
 
 const management = read("src/modules/shared-core/ManagementScreens.tsx");
 const userManagement = read("src/modules/shared-core/UserManagement.tsx");
+const managementPrimitives = read("src/components/ui/ManagementPrimitives.tsx");
 const screenFields = {
   "Branch Management": ["Branch Name", "Branch Code", "Location", "Assigned Manager", "Phone", "Operating Hours", "Description", "Status", "Active", "Inactive", "Suspended", "Closed"],
   "Department Management": ["Department Name", "Branch", "Manager", "Department Members", "Description", "Status", "Active", "Inactive", "Suspended"],
@@ -171,11 +172,12 @@ includesAll(entity, "Modal CRUD and Excel import", [
   "flex-nowrap",
   "whitespace-nowrap"
 ]);
-includesAll(userManagement, "User directory behavior", ["Total users", "User name", "Access", "Last active", "Date added", "Add user", "Import", "Export", "Template", "MoreVertical", "label=\"View\"", "label=\"Edit\"", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "minWidth: 44", "maxHeight: 44", "borderRadius: \"50%\"", "min-w-[860px]"]);
+includesAll(userManagement, "User directory behavior", ["Total users", "User name", "Access", "Last active", "Date added", "Add user", "Import", "Export", "Template", "KebabActionMenu", 'label: "View"', 'label: "Edit"', "UserAvatar", "LabeledField", "DetailItem", "FormModal", "read-excel-file/browser", "aria-pressed={filtersOpen}", "All roles", "All statuses", "tone=\"role\"", "tone=\"branch\"", "tone=\"department\"", "min-w-[860px]"]);
+includesAll(managementPrimitives, "Shared management primitives", ["LabeledField", "UserAvatar", "DetailItem", "KebabActionMenu", "MoreVertical", "minWidth: size", "maxHeight: size", "borderRadius: \"50%\""]);
 assert(!userManagement.includes('type="checkbox"'), "User Management must not render unused checkboxes");
 includesAll(management, "Organization tables without row selection", ['title="Branch Management"', 'title="Department Management"', "allowSelection={false}"]);
 includesAll(management, "Organization table search and actions", ['searchPlaceholder="Search branch"', 'searchPlaceholder="Search department"', "actionMenu"]);
-includesAll(entity, "Kebab table actions", ["MoreVertical", "ActionMenuButton", "actionMenuId", 'label="View"', 'label="Edit"']);
+includesAll(entity, "Kebab table actions", ["KebabActionMenu", "actionMenuId", 'label: "View"', 'label: "Edit"']);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
@@ -245,7 +247,8 @@ includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
 includesAll(roles, "Permission matrix UI", ["Organization Roles", "FormModal", "Hierarchy Level", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
 includesAll(roles, "Compact labeled role form", ["Role Name", "Example: Branch Manager", "Description", "Example: Manages branch operations", "Status", "max-w-2xl"]);
-includesAll(roles, "Level-derived organization tree", ["buildHierarchy", "parentByUser", "managerId", "reportingManager", "Level {level}", "children.map"]);
+includesAll(roles, "Level-derived organization tree UI", ["buildOrganizationHierarchy", "HierarchyEntry", "UserAvatar", "Level {level}", "children.map"]);
+includesAll(read("src/lib/organizationHierarchy.ts"), "Shared hierarchy logic", ["buildOrganizationHierarchy", "parentByUser", "managerId", "reportingManager", "relationshipScore", "canEditUserHierarchy"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
 
@@ -260,7 +263,7 @@ includesAll(sidebar, "Permission sidebar", ["canAccessItem", "AuthService.can(\"
 includesAll(sidebar, "Blank logo state", ["No company logo", "companyName"]);
 includesAll(sidebar, "Collapsible resizable sidebar", ["vernex-sidebar-width", "vernex-sidebar-collapsed", "Collapse menu", "Resize sidebar", "cursor-col-resize"]);
 includesAll(sidebar, "Bounded sidebar width", ["Math.min(320", "savedWidth <= 320"]);
-includesAll(read("src/lib/services.ts"), "Hierarchy-aware user editing", ["canEditUser", "targetRole.level > actorRole.level", "nextRole.level > actorRole.level"]);
+includesAll(read("src/lib/services.ts"), "Hierarchy-aware user editing", ["canEditUser", "canEditUserHierarchy", "OrganizationService"]);
 
 const navigation = JSON.parse(read("src/config/navigation.json"));
 const organizationOrder = navigation[0].items.map((item) => item.label);

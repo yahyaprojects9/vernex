@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Edit, Eye, MoreVertical, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Download, Edit, Eye, Plus, Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { FormModal } from "@/components/modals/FormModal";
 import { AuthService } from "@/lib/services";
+import { DetailItem, KebabActionMenu } from "@/components/ui/ManagementPrimitives";
 
 export type FieldConfig = {
   key: string;
@@ -316,10 +317,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
         {viewing ? <dl className="grid gap-3 sm:grid-cols-2">
           {fields.filter((field) => !field.hideInView).map((field) => {
             const value = String((viewing as Record<string, unknown>)[field.key] ?? "");
-            return <div key={field.key} className="rounded-md border border-border p-3">
-              <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
-              <dd className="mt-1 break-words text-sm font-semibold">{field.renderValue ? field.renderValue(value, viewing as Record<string, unknown>) : value || "-"}</dd>
-            </div>;
+            return <DetailItem key={field.key} label={field.label} value={field.renderValue ? field.renderValue(value, viewing as Record<string, unknown>) : value} />;
           })}
         </dl> : null}
       </FormModal>
@@ -374,14 +372,17 @@ export function EntityManager<T extends { id: string; status?: string }>({
                   })}
                   <td className="relative whitespace-nowrap px-4 py-4 align-top">
                     {actionMenu ? <>
-                      <Button variant="ghost" className="h-9 w-9 shrink-0 px-0" onClick={() => setActionMenuId(actionMenuId === record.id ? null : record.id)} aria-label="Actions" aria-expanded={actionMenuId === record.id}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                      {actionMenuId === record.id ? <div className={`absolute right-4 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl ${index >= visible.length - 2 ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"}`}>
-                        <ActionMenuButton icon={Eye} label="View" onClick={() => { setViewing(record); setActionMenuId(null); }} />
-                        <ActionMenuButton icon={Edit} label="Edit" disabled={!canEdit} onClick={() => { startEdit(record); setActionMenuId(null); }} />
-                        {allowDelete ? <ActionMenuButton icon={Trash2} label="Delete" disabled={!canDelete} danger onClick={() => { setDeleting(record); setActionMenuId(null); }} /> : null}
-                      </div> : null}
+                      <KebabActionMenu
+                        open={actionMenuId === record.id}
+                        onToggle={() => setActionMenuId(actionMenuId === record.id ? null : record.id)}
+                        ariaLabel="Actions"
+                        openAbove={index >= visible.length - 2}
+                        items={[
+                          { icon: Eye, label: "View", onClick: () => { setViewing(record); setActionMenuId(null); } },
+                          { icon: Edit, label: "Edit", disabled: !canEdit, onClick: () => { startEdit(record); setActionMenuId(null); } },
+                          ...(allowDelete ? [{ icon: Trash2, label: "Delete", disabled: !canDelete, danger: true, onClick: () => { setDeleting(record); setActionMenuId(null); } }] : [])
+                        ]}
+                      />
                     </> : <div className="flex flex-nowrap gap-2">
                         <Button variant="secondary" className="h-9 w-9 shrink-0 px-0" onClick={() => setViewing(record)} aria-label="View"><Eye className="h-4 w-4" /></Button>
                         <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => startEdit(record)} aria-label="Edit" disabled={!canEdit}><Edit className="h-4 w-4" /></Button>
@@ -399,14 +400,4 @@ export function EntityManager<T extends { id: string; status?: string }>({
       )}
     </section>
   );
-}
-
-function ActionMenuButton({ icon: Icon, label, onClick, disabled = false, danger = false }: {
-  icon: typeof Eye;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-}) {
-  return <button type="button" disabled={disabled} onClick={onClick} className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 ${danger ? "text-danger" : ""}`}><Icon className="h-4 w-4" />{label}</button>;
 }

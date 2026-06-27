@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import { Download, Edit, Eye, MoreVertical, Plus, Search, SlidersHorizontal, Upload } from "lucide-react";
+import { Download, Edit, Eye, Plus, Search, SlidersHorizontal, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { FormModal } from "@/components/modals/FormModal";
 import { AuthService, OrganizationService, UserService, type StoredUser } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { userSchema } from "@/schemas/organization";
+import { DetailItem, KebabActionMenu, LabeledField, UserAvatar } from "@/components/ui/ManagementPrimitives";
 
 const PAGE_SIZE = 8;
 
@@ -234,16 +234,16 @@ export function UserManagementScreen() {
           <Input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} className="min-h-11 pl-9" placeholder="Search users" />
         </label>
         {filtersOpen ? <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
-          <Field label="Role">
+          <LabeledField label="Role">
             <Select value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }} aria-label="Filter by role">
               <option value="All">All roles</option>{store.roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
             </Select>
-          </Field>
-          <Field label="Status">
+          </LabeledField>
+          <LabeledField label="Status">
             <Select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filter by status">
               <option value="All">All statuses</option><option>Active</option><option>Inactive</option><option>Suspended</option>
             </Select>
-          </Field>
+          </LabeledField>
         </div> : null}
       </div>
 
@@ -274,12 +274,7 @@ export function UserManagementScreen() {
                 return <tr key={user.id} className="hover:bg-muted/30">
                   <td className="px-5 py-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className="grid shrink-0 place-items-center overflow-hidden border border-primary/20 bg-primary/10 font-bold text-primary"
-                        style={{ width: 44, height: 44, minWidth: 44, maxWidth: 44, minHeight: 44, maxHeight: 44, borderRadius: "50%" }}
-                      >
-                        {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="h-full w-full object-cover" /> : user.name.charAt(0)}
-                      </span>
+                      <UserAvatar name={user.name} src={user.avatar} />
                       <div className="min-w-0"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
                     </div>
                   </td>
@@ -293,11 +288,16 @@ export function UserManagementScreen() {
                   <td className="whitespace-nowrap px-5 py-4 text-sm">{user.lastActive || "-"}</td>
                   <td className="whitespace-nowrap px-5 py-4 text-sm">{user.joiningDate || "-"}</td>
                   <td className="relative px-3 py-4 text-right">
-                    <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} aria-expanded={menuId === user.id} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
-                    {menuId === user.id ? <div className={`absolute right-3 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl ${menuAbove ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"}`}>
-                      <MenuButton icon={Eye} label="View" onClick={() => { setViewing(user); setMenuId(null); }} />
-                      <MenuButton icon={Edit} label="Edit" disabled={!canEdit || !AuthService.canEditUser(user.id)} onClick={() => { openEdit(user); setMenuId(null); }} />
-                    </div> : null}
+                    <KebabActionMenu
+                      open={menuId === user.id}
+                      onToggle={() => setMenuId(menuId === user.id ? null : user.id)}
+                      ariaLabel={`Actions for ${user.name}`}
+                      openAbove={menuAbove}
+                      items={[
+                        { icon: Eye, label: "View", onClick: () => { setViewing(user); setMenuId(null); } },
+                        { icon: Edit, label: "Edit", disabled: !canEdit || !AuthService.canEditUser(user.id), onClick: () => { openEdit(user); setMenuId(null); } }
+                      ]}
+                    />
                   </td>
                 </tr>;
               })}
@@ -318,24 +318,24 @@ export function UserManagementScreen() {
             const file = event.target.files?.[0]; if (!file) return;
             const reader = new FileReader(); reader.onload = () => setDraft({ ...draft, avatar: String(reader.result) }); reader.readAsDataURL(file);
           }} /></label>
-          {formFields.map(([key, label]) => <Field key={key} label={label}><Input type={key === "joiningDate" ? "date" : key === "email" ? "email" : "text"} value={draft[key] ?? ""} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} /></Field>)}
-          {!editing ? <><Field label="Password"><Input type="password" value={draft.password ?? ""} onChange={(event) => setDraft({ ...draft, password: event.target.value })} /></Field><Field label="Confirm Password"><Input type="password" value={draft.confirmPassword ?? ""} onChange={(event) => setDraft({ ...draft, confirmPassword: event.target.value })} /></Field></> : null}
-          <Field label="Role"><Select value={draft.roleId ?? ""} onChange={(event) => setDraft({ ...draft, roleId: event.target.value })}>{store.roles.filter((role) => role.status !== "Inactive").map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></Field>
-          <Field label="Branch"><Select value={draft.branchId ?? ""} onChange={(event) => setDraft({ ...draft, branchId: event.target.value })}>{store.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</Select></Field>
-          <Field label="Department"><Select value={draft.departmentId ?? ""} onChange={(event) => setDraft({ ...draft, departmentId: event.target.value })}>{store.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</Select></Field>
-          <Field label="Reporting Manager"><Select value={draft.managerId ?? ""} onChange={(event) => setDraft({ ...draft, managerId: event.target.value })}><option value="">No manager</option>{store.users.filter((user) => user.roleId === "manager").map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</Select></Field>
-          <Field label="Status"><Select value={draft.status ?? "Active"} onChange={(event) => setDraft({ ...draft, status: event.target.value })}><option>Active</option><option>Inactive</option><option>Suspended</option></Select></Field>
+          {formFields.map(([key, label]) => <LabeledField key={key} label={label}><Input type={key === "joiningDate" ? "date" : key === "email" ? "email" : "text"} value={draft[key] ?? ""} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} /></LabeledField>)}
+          {!editing ? <><LabeledField label="Password"><Input type="password" value={draft.password ?? ""} onChange={(event) => setDraft({ ...draft, password: event.target.value })} /></LabeledField><LabeledField label="Confirm Password"><Input type="password" value={draft.confirmPassword ?? ""} onChange={(event) => setDraft({ ...draft, confirmPassword: event.target.value })} /></LabeledField></> : null}
+          <LabeledField label="Role"><Select value={draft.roleId ?? ""} onChange={(event) => setDraft({ ...draft, roleId: event.target.value })}>{store.roles.filter((role) => role.status !== "Inactive").map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></LabeledField>
+          <LabeledField label="Branch"><Select value={draft.branchId ?? ""} onChange={(event) => setDraft({ ...draft, branchId: event.target.value })}>{store.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</Select></LabeledField>
+          <LabeledField label="Department"><Select value={draft.departmentId ?? ""} onChange={(event) => setDraft({ ...draft, departmentId: event.target.value })}>{store.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</Select></LabeledField>
+          <LabeledField label="Reporting Manager"><Select value={draft.managerId ?? ""} onChange={(event) => setDraft({ ...draft, managerId: event.target.value })}><option value="">No manager</option>{store.users.filter((user) => user.roleId === "manager").map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</Select></LabeledField>
+          <LabeledField label="Status"><Select value={draft.status ?? "Active"} onChange={(event) => setDraft({ ...draft, status: event.target.value })}><option>Active</option><option>Inactive</option><option>Suspended</option></Select></LabeledField>
           <div className="flex justify-end gap-2 sm:col-span-2"><Button variant="secondary" onClick={() => setFormOpen(false)}>Cancel</Button><Button onClick={saveUser}>{editing ? "Save changes" : "Add user"}</Button></div>
         </div>
       </FormModal>
 
       <FormModal open={Boolean(viewing)} title="User details" onClose={() => setViewing(null)} className="max-w-xl">
         {viewing ? <div className="grid gap-3 sm:grid-cols-2">
-          {[
+          {([
             ["Name", viewing.name], ["Email", viewing.email], ["Phone", viewing.phone], ["Role", roleById[viewing.roleId]?.name],
             ["Branch", branchById[viewing.branchId ?? viewing.branchIds[0]]?.name], ["Department", departmentById[viewing.departmentId ?? viewing.departmentIds[0]]?.name],
             ["Reporting Manager", userById[viewing.managerId ?? ""]?.name], ["Employee Code", viewing.employeeCode], ["Joining Date", viewing.joiningDate], ["Status", viewing.status]
-          ].map(([label, value]) => <div key={label} className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value || "-"}</p></div>)}
+          ] as Array<[string, string | undefined]>).map(([label, value]) => <DetailItem key={label} label={label} value={value} />)}
         </div> : null}
       </FormModal>
 
@@ -346,10 +346,6 @@ export function UserManagementScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="space-y-1"><span className="text-sm font-medium">{label}</span>{children}</label>;
-}
-
 function AccessBadge({ children, tone }: { children: React.ReactNode; tone: "role" | "branch" | "department" }) {
   const tones = {
     role: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -357,10 +353,6 @@ function AccessBadge({ children, tone }: { children: React.ReactNode; tone: "rol
     department: "border-violet-200 bg-violet-50 text-violet-700"
   };
   return <span className={`max-w-40 truncate rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
-}
-
-function MenuButton({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Eye; label: string; onClick: () => void; disabled?: boolean }) {
-  return <button type="button" disabled={disabled} onClick={onClick} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function legacyRole(roleId: string): StoredUser["role"] {

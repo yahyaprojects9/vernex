@@ -5,6 +5,7 @@ import { localStorageAdapter } from "@/adapters/storage/LocalStorageAdapter";
 import { abilitiesForPermission, defineAbilityFor, type AbilityAction, type AbilitySubjectName } from "@/casl/ability";
 import { createCollectionRepository } from "@/repositories/createCollectionRepository";
 import { useSessionStore } from "@/stores/sessionStore";
+import { canEditUserHierarchy } from "@/lib/organizationHierarchy";
 import type {
   Conversation,
   CostTracking,
@@ -979,9 +980,7 @@ export class AuthService {
     const targetRole = target ? store.roles.find((role) => role.id === target.roleId) : null;
     const nextRole = nextRoleId ? store.roles.find((role) => role.id === nextRoleId) : null;
     if (!actor || !target || !actorRole || !targetRole || !this.can("update", "User")) return false;
-    if (targetRole.level > actorRole.level) return false;
-    if (nextRole && nextRole.level > actorRole.level) return false;
-    return true;
+    return canEditUserHierarchy(actorRole, targetRole, nextRole ?? undefined);
   }
 
   static canViewModule(module: string) {

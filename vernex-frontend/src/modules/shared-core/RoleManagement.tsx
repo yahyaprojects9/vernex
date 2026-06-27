@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { Edit, Eye, Plus } from "lucide-react";
 import permissionsConfig from "@/config/permissions.json";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
-import { AuthService, RolePermissionService, RoleService, type RoleRecord, type StoredUser } from "@/lib/services";
+import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { roleSchema } from "@/schemas/organization";
 import { FormModal } from "@/components/modals/FormModal";
+import { DetailItem, LabeledField, UserAvatar } from "@/components/ui/ManagementPrimitives";
+import { buildOrganizationHierarchy, type HierarchyEntry } from "@/lib/organizationHierarchy";
 
 type RoleDraft = {
   name: string;
@@ -40,7 +41,7 @@ export function RoleManagement() {
     [store.roles]
   );
   const viewingRole = store.roles.find((role) => role.id === viewingId);
-  const hierarchy = useMemo(() => buildHierarchy(store.users, store.roles), [store.roles, store.users]);
+  const hierarchy = useMemo(() => buildOrganizationHierarchy(store.users, store.roles), [store.roles, store.users]);
 
   function editRole(role: RoleRecord) {
     setEditingId(role.id);
@@ -152,10 +153,10 @@ export function RoleManagement() {
         {draft ? <div className="space-y-5">
           {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger">{validationError}</p> : null}
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1"><span className="text-sm font-medium">Role Name</span><Input placeholder="Example: Branch Manager" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
-            <label className="space-y-1"><span className="text-sm font-medium">Description</span><Input placeholder="Example: Manages branch operations" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
-            <label className="space-y-1"><span className="text-sm font-medium">Hierarchy Level</span><Input type="number" min="1" max="100" placeholder="Example: 50" value={draft.hierarchyLevel} onChange={(event) => setDraft({ ...draft, hierarchyLevel: event.target.value })} /></label>
-            <label className="space-y-1"><span className="text-sm font-medium">Status</span><Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select></label>
+            <LabeledField label="Role Name"><Input placeholder="Example: Branch Manager" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></LabeledField>
+            <LabeledField label="Description"><Input placeholder="Example: Manages branch operations" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></LabeledField>
+            <LabeledField label="Hierarchy Level"><Input type="number" min="1" max="100" placeholder="Example: 50" value={draft.hierarchyLevel} onChange={(event) => setDraft({ ...draft, hierarchyLevel: event.target.value })} /></LabeledField>
+            <LabeledField label="Status"><Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select></LabeledField>
           </div>
           <PermissionMatrix permissions={draft.permissions} editable onToggle={togglePermission} onToggleModule={setModule} />
           <div className="flex justify-end gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => { setDraft(null); setEditingId(null); }}>Cancel</Button></div>
@@ -166,9 +167,9 @@ export function RoleManagement() {
         {viewingRole ? <div className="space-y-5">
           <div><h2 className="text-lg font-semibold">{viewingRole.name}</h2><p className="text-sm text-muted-foreground">{viewingRole.description}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Info label="Hierarchy Level" value={String(viewingRole.level)} />
-            <Info label="Assigned Users" value={String(store.users.filter((user) => user.roleId === viewingRole.id).length)} />
-            <Info label="Accessible Modules" value={String(Object.values(viewingRole.permissions ?? {}).filter((items) => items.length).length)} />
+            <DetailItem muted label="Hierarchy Level" value={String(viewingRole.level)} />
+            <DetailItem muted label="Assigned Users" value={String(store.users.filter((user) => user.roleId === viewingRole.id).length)} />
+            <DetailItem muted label="Accessible Modules" value={String(Object.values(viewingRole.permissions ?? {}).filter((items) => items.length).length)} />
           </div>
           <PermissionMatrix permissions={viewingRole.permissions ?? {}} />
         </div> : null}
@@ -202,60 +203,6 @@ function PermissionMatrix({ permissions, editable = false, onToggle, onToggleMod
   ))}</div>;
 }
 
-function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-md bg-muted p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>;
-}
-
-type HierarchyEntry = {
-  user: StoredUser;
-  level: number;
-  children: HierarchyEntry[];
-};
-
-function buildHierarchy(users: StoredUser[], roles: RoleRecord[]) {
-  const roleLevels = new Map(roles.map((role) => [role.id, role.level]));
-  const usersById = new Map(users.map((user) => [user.id, user]));
-  const parentByUser = new Map<string, string>();
-  const sorted = [...users].sort((a, b) => (roleLevels.get(b.roleId) ?? 0) - (roleLevels.get(a.roleId) ?? 0) || a.name.localeCompare(b.name));
-
-  for (const user of sorted) {
-    const level = roleLevels.get(user.roleId) ?? 0;
-    const explicitId = user.managerId ?? user.reportingManager;
-    const explicit = explicitId ? usersById.get(explicitId) : undefined;
-    if (explicit && (roleLevels.get(explicit.roleId) ?? 0) > level) {
-      parentByUser.set(user.id, explicit.id);
-      continue;
-    }
-
-    const parent = sorted
-      .filter((candidate) => candidate.id !== user.id && (roleLevels.get(candidate.roleId) ?? 0) > level)
-      .sort((a, b) => {
-        const aDepartment = a.departmentIds.some((id) => user.departmentIds.includes(id)) ? 1 : 0;
-        const bDepartment = b.departmentIds.some((id) => user.departmentIds.includes(id)) ? 1 : 0;
-        const aBranch = a.branchIds.some((id) => user.branchIds.includes(id)) ? 1 : 0;
-        const bBranch = b.branchIds.some((id) => user.branchIds.includes(id)) ? 1 : 0;
-        return bDepartment - aDepartment
-          || bBranch - aBranch
-          || (roleLevels.get(a.roleId) ?? 0) - (roleLevels.get(b.roleId) ?? 0)
-          || a.name.localeCompare(b.name);
-      })[0];
-    if (parent) parentByUser.set(user.id, parent.id);
-  }
-
-  const entries = new Map(sorted.map((user) => [user.id, { user, level: roleLevels.get(user.roleId) ?? 0, children: [] as HierarchyEntry[] }]));
-  const roots: HierarchyEntry[] = [];
-  for (const user of sorted) {
-    const entry = entries.get(user.id);
-    if (!entry) continue;
-    const parent = entries.get(parentByUser.get(user.id) ?? "");
-    if (parent) parent.children.push(entry);
-    else roots.push(entry);
-  }
-  const order = (items: HierarchyEntry[]) => items.sort((a, b) => b.level - a.level || a.user.name.localeCompare(b.user.name)).forEach((item) => order(item.children));
-  order(roots);
-  return roots;
-}
-
 function HierarchyNode({ node, depth, store }: { node: HierarchyEntry; depth: number; store: ReturnType<typeof useLocalStore> }) {
   const { user, level, children } = node;
   const role = store.roles.find((item) => item.id === user.roleId)?.name ?? user.roleId;
@@ -264,7 +211,7 @@ function HierarchyNode({ node, depth, store }: { node: HierarchyEntry; depth: nu
   return <div className="relative" style={{ marginLeft: Math.min(depth, 6) * 24 }}>
     {depth ? <span className="absolute -left-4 top-0 h-1/2 w-4 rounded-bl-md border-b border-l border-border" /> : null}
     <div className="flex min-w-0 items-center gap-3 rounded-md border border-border bg-white p-3">
-      {user.avatar ? <Image src={user.avatar} alt="" width={36} height={36} unoptimized className="h-9 w-9 shrink-0 rounded-full object-cover" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>}
+      <UserAvatar name={user.name} src={user.avatar} size={36} strong />
       <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{user.name} - {role}</span><span className="block truncate text-xs text-muted-foreground">{department} | {branch}</span></span>
       <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Level {level}</span>
     </div>
