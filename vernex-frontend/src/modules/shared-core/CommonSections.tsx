@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Edit, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { Copy, Edit, FileText, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
-import { UploadCard } from "@/components/forms/UploadCard";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
@@ -253,26 +252,6 @@ export function AiReplyConfigurator() {
   );
 }
 
-export function SalesReviewPanel() {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section className="dashboard-surface space-y-4 p-5">
-        <h3 className="font-semibold">Prompt test</h3>
-        <Textarea placeholder="Paste a customer enquiry for AI sales review" />
-        <Button>Review response</Button>
-      </section>
-      <section className="dashboard-surface space-y-4 p-5">
-        <h3 className="font-semibold">AI response preview</h3>
-        <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Reviewed responses will appear here.</p>
-        <div className="flex gap-2">
-          <Button>Approve</Button>
-          <Button variant="secondary">Reject</Button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 export function ProfitInsights() {
   const salesTrend = AnalyticsService.salesTrend();
   const store = useLocalStore();
@@ -330,46 +309,5 @@ export function ProfitReportPreview() {
         { label: "Owner Actions", value: report.ownerActionPoints }
       ]}
     />
-  );
-}
-
-export function UploadHistory() {
-  const store = useLocalStore();
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-      <UploadCard title="Upload sales CSV" description="Validate bill rows, items, order sources, and time data." />
-      <section className="dashboard-surface p-5">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Upload history</h3>
-          <Button variant="secondary"><Upload className="h-4 w-4" /> Import</Button>
-        </div>
-        <div className="mt-4 space-y-3">
-          {store.imports.length ? store.imports.map((item) => (
-            <div key={item.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-              <span>{item.sourceType || `Import ${item.id}`}</span>
-              <StatusBadge tone={item.status === "Imported" || item.status === "Validated" ? "success" : "neutral"}>{item.status}</StatusBadge>
-            </div>
-          )) : <EmptyState title="No uploads yet" description="Imported files and validation results will appear here." />}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-export function CostForm() {
-  return (
-    <section className="dashboard-surface space-y-4 p-5">
-      <div className="flex items-center gap-2">
-        <Plus className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold">Add cost item</h3>
-      </div>
-      <div className="grid gap-3 md:grid-cols-4">
-        <input className="focus-ring rounded-md border border-input px-3 py-2 text-sm" placeholder="Item name" />
-        <input className="focus-ring rounded-md border border-input px-3 py-2 text-sm" placeholder="Selling price" />
-        <input className="focus-ring rounded-md border border-input px-3 py-2 text-sm" placeholder="Food cost" />
-        <Button>Add item</Button>
-      </div>
-    </section>
   );
 }

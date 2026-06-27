@@ -56,7 +56,7 @@ export function DashboardOverview() {
             { key: "leadName", header: "Recent Lead" },
             { key: "source", header: "Source" },
             { key: "requirement", header: "Requirement" },
-            { key: "budget", header: "Budget", render: (row) => formatCurrency(Number(row.budget)) },
+            { key: "assignedStaff", header: "Assigned To" },
             {
               key: "leadScore",
               header: "Score",

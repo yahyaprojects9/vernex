@@ -13,11 +13,13 @@ export function LoadingState({ label = "Loading data" }: { label?: string }) {
 export function EmptyState({
   title = "No data yet",
   description = "Once data is available, it will appear here.",
-  actionLabel
+  actionLabel,
+  onAction
 }: {
   title?: string;
   description?: string;
   actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="dashboard-surface flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
@@ -26,7 +28,7 @@ export function EmptyState({
         <h3 className="text-base font-semibold">{title}</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
       </div>
-      {actionLabel ? <Button variant="secondary">{actionLabel}</Button> : null}
+      {actionLabel && onAction ? <Button variant="secondary" onClick={onAction}>{actionLabel}</Button> : null}
     </div>
   );
 }

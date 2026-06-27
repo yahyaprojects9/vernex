@@ -17,8 +17,10 @@ import {
   HandoffService,
   ProductPerformanceService
   ,OrganizationService
+  ,AuthService
 } from "@/lib/services";
 import type { CostTracking, FollowUpRule, HandoffRequest, Lead, MenuItemPerformance, Quotation, WastageEntry } from "@/types";
+import { branchSchema, departmentSchema, userSchema } from "@/schemas/organization";
 
 export function UserManagementScreen() {
   const store = useLocalStore();
@@ -46,15 +48,22 @@ export function UserManagementScreen() {
       onDelete={UserService.delete}
       permissions={{ module: "Organization", create: "Create Users", edit: "Edit Users", export: "View Users" }}
       allowDelete={false}
+      validate={(payload, editing) => {
+        if (editing) return payload.name && payload.email && payload.roleId ? null : "Name, email, and role are required.";
+        const result = userSchema.safeParse(payload);
+        return result.success ? null : result.error.issues[0]?.message ?? "Invalid user details.";
+      }}
       fields={[
+        { key: "avatar", label: "Profile Picture", type: "image", hideInTable: true },
         { key: "name", label: "Full Name" },
         { key: "email", label: "Email" },
         { key: "phone", label: "Phone" },
         { key: "password", label: "Password", hideInTable: true },
-        { key: "roleId", label: "Role", type: "select", options: store.roles.filter((role) => role.status !== "Inactive").map((role) => role.id), renderValue: (value) => roleName[value] ?? value },
-        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), renderValue: (value, record) => branchName[value] ?? branchName[String((record.branchIds as string[])?.[0])] ?? value },
-        { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), renderValue: (value, record) => departmentName[value] ?? departmentName[String((record.departmentIds as string[])?.[0])] ?? value },
-        { key: "managerId", label: "Reporting Manager", type: "select", options: store.users.filter((user) => user.roleId === "manager").map((user) => user.id), renderValue: (value) => userName[value] ?? value },
+        { key: "confirmPassword", label: "Confirm Password", hideInTable: true },
+        { key: "roleId", label: "Role", type: "select", options: store.roles.filter((role) => role.status !== "Inactive").map((role) => role.id), optionLabels: roleName, renderValue: (value) => roleName[value] ?? value },
+        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), optionLabels: branchName, renderValue: (value, record) => branchName[value] ?? branchName[String((record.branchIds as string[])?.[0])] ?? value },
+        { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), optionLabels: departmentName, renderValue: (value, record) => departmentName[value] ?? departmentName[String((record.departmentIds as string[])?.[0])] ?? value },
+        { key: "managerId", label: "Reporting Manager", type: "select", options: store.users.filter((user) => user.roleId === "manager").map((user) => user.id), optionLabels: userName, renderValue: (value) => userName[value] ?? value },
         { key: "employeeCode", label: "Employee Code" },
         { key: "joiningDate", label: "Joining Date", type: "date" },
         { key: "team", label: "Team" },
@@ -82,11 +91,15 @@ export function BranchManagementScreen() {
         onUpdate={BranchService.update}
         onDelete={BranchService.delete}
         permissions={{ module: "Organization", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
+        validate={(payload) => {
+          const result = branchSchema.safeParse(payload);
+          return result.success ? null : result.error.issues[0]?.message ?? "Invalid branch details.";
+        }}
         fields={[
           { key: "name", label: "Branch Name" },
           { key: "code", label: "Branch Code" },
           { key: "location", label: "Location" },
-          { key: "managerId", label: "Assigned Manager", type: "select", options: managers.map((user) => user.id), renderValue: (value) => managers.find((user) => user.id === value)?.name ?? value },
+          { key: "managerId", label: "Assigned Manager", type: "select", options: managers.map((user) => user.id), optionLabels: Object.fromEntries(managers.map((user) => [user.id, user.name])), renderValue: (value) => managers.find((user) => user.id === value)?.name ?? value },
           { key: "phone", label: "Phone" },
           { key: "operatingHours", label: "Operating Hours" },
           { key: "description", label: "Description", type: "textarea" },
@@ -100,21 +113,27 @@ export function BranchManagementScreen() {
 export function DepartmentManagementScreen() {
   const store = useLocalStore();
   const managers = store.users.filter((user) => user.roleId === "manager" && user.status === "Active");
+  const creator = AuthService.currentUser();
+  const departmentManagers = creator && !managers.some((user) => user.id === creator.id) ? [creator, ...managers] : managers;
   return (
     <EntityManager
       title="Department Management"
       description="Create departments, assign managers and users, manage visibility, and review department analytics."
       records={store.departments}
-      onCreate={(record) => OrganizationService.createDepartment({ ...record, status: "Active", createdAt: new Date().toISOString() })}
+      onCreate={(record) => OrganizationService.createDepartment({ ...record, managerId: creator?.id ?? record.managerId, status: "Active", createdAt: new Date().toISOString() })}
       onUpdate={OrganizationService.updateDepartment}
       onDelete={DepartmentService.delete}
       permissions={{ module: "Organization", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
+      validate={(payload) => {
+        const result = departmentSchema.safeParse(payload);
+        return result.success ? null : result.error.issues[0]?.message ?? "Invalid department details.";
+      }}
       fields={[
         { key: "name", label: "Department Name" },
-        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), renderValue: (value) => store.branches.find((branch) => branch.id === value)?.name ?? value },
-        { key: "managerId", label: "Manager", type: "select", options: managers.map((user) => user.id), renderValue: (value) => managers.find((user) => user.id === value)?.name ?? value },
+        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), optionLabels: Object.fromEntries(store.branches.map((branch) => [branch.id, branch.name])), renderValue: (value) => store.branches.find((branch) => branch.id === value)?.name ?? value },
+        { key: "managerId", label: "Manager", type: "select", options: departmentManagers.map((user) => user.id), optionLabels: Object.fromEntries(departmentManagers.map((user) => [user.id, user.name])), hideOnCreate: true, defaultOnCreate: creator?.id ?? "", renderValue: (value) => store.users.find((user) => user.id === value)?.name ?? value },
         { key: "description", label: "Description", type: "textarea" },
-        { key: "memberIds", label: "Department Members", type: "multiselect", options: store.users.map((user) => user.id), renderValue: (value, record) => String((record.memberIds as string[])?.length ?? 0) },
+        { key: "memberIds", label: "Department Members", type: "multiselect", options: store.users.map((user) => user.id), optionLabels: Object.fromEntries(store.users.map((user) => [user.id, user.name])), renderValue: (value, record) => String((record.memberIds as string[])?.length ?? 0) },
         { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
       ]}
     />
@@ -123,25 +142,28 @@ export function DepartmentManagementScreen() {
 
 export function LeadManagementScreen() {
   const store = useLocalStore();
+  const assignableUsers = store.users.filter((user) => ["sales-executive", "staff"].includes(user.roleId));
+  const userLabels = Object.fromEntries(assignableUsers.map((user) => [user.id, user.name]));
+  const departmentLabels = Object.fromEntries(store.departments.map((department) => [department.id, department.name]));
   return (
     <EntityManager<Lead>
       title="Lead Management"
       description="Create, update, delete, filter, bulk export, and assign leads. Analytics recalculate from stored lead data."
       records={store.leads}
-      onCreate={(record) => LeadService.create(record)}
+      onCreate={(record) => LeadService.create({ ...record, assignedStaff: userLabels[record.assignedUserId ?? ""] ?? "", branchId: assignableUsers.find((user) => user.id === record.assignedUserId)?.branchIds[0], departmentId: assignableUsers.find((user) => user.id === record.assignedUserId)?.departmentIds[0] })}
       onUpdate={LeadService.update}
       onDelete={LeadService.delete}
       permissions={{ module: "Sales Agent", create: "Create Lead", edit: "Edit Lead", delete: "Delete Lead", export: "Export Leads", import: "Create Lead" }}
       fields={[
         { key: "leadName", label: "Lead Name" },
-        { key: "phone", label: "Phone" },
         { key: "source", label: "Source", type: "select", options: ["WhatsApp", "Website", "Email", "Manual"] },
-        { key: "requirement", label: "Requirement" },
-        { key: "budget", label: "Budget", type: "number" },
-        { key: "location", label: "Location" },
         { key: "status", label: "Status", type: "select", options: ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"] },
         { key: "leadScore", label: "Lead Score", type: "select", options: ["Hot", "Warm", "Cold"] },
-        { key: "assignedStaff", label: "Assigned Staff" },
+        { key: "assignedUserId", label: "Assigned Staff", type: "select", options: assignableUsers.map((user) => user.id), optionLabels: userLabels, renderValue: (value) => userLabels[value] ?? value },
+        { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), optionLabels: departmentLabels, renderValue: (value) => departmentLabels[value] ?? value },
+        { key: "phone", label: "Phone" },
+        { key: "requirement", label: "Requirement" },
+        { key: "location", label: "Location" },
         { key: "nextFollowUp", label: "Next Follow-up", type: "date" },
         { key: "notes", label: "Notes", type: "textarea" }
       ]}
@@ -151,6 +173,7 @@ export function LeadManagementScreen() {
 
 export function QuotationManagementScreen() {
   const store = useLocalStore();
+  const leadLabels = Object.fromEntries(store.leads.map((lead) => [lead.id, lead.leadName]));
   return (
     <EntityManager<Quotation>
       title="Quotation Management"
@@ -160,7 +183,9 @@ export function QuotationManagementScreen() {
       onUpdate={QuotationService.update}
       onDelete={QuotationService.delete}
       permissions={{ module: "Sales Agent", create: "Manage Quotations", edit: "Manage Quotations", delete: "Manage Quotations", export: "Manage Quotations" }}
+      validate={(payload) => payload.leadId ? null : "Select a lead before creating the quotation."}
       fields={[
+        { key: "leadId", label: "Lead", type: "select", options: store.leads.map((lead) => lead.id), optionLabels: leadLabels, renderValue: (value) => leadLabels[value] ?? value },
         { key: "quotationTitle", label: "Quotation Title" },
         { key: "servicePackageName", label: "Service/Package Name" },
         { key: "price", label: "Price", type: "number" },

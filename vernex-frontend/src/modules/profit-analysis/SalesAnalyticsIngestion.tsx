@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileJson, FileSpreadsheet, Keyboard, Plug, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Keyboard } from "lucide-react";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AuthService, ImportService, SalesAnalyticsService } from "@/lib/services";
@@ -12,18 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import type { SalesRecord } from "@/types";
 
-const sourceTypes = [
-  "CSV",
-  "Excel",
-  "JSON",
-  "Manual Entry",
-  "API Import",
-  "POS Import",
-  "Tally Import",
-  "Billing Export",
-  "ERP Import",
-  "Google Sheets Import"
-];
+const sourceTypes = ["Manual Entry"];
 
 function validateRows(rows: Partial<SalesRecord>[]) {
   const errors: string[] = [];
@@ -45,7 +34,7 @@ export function SalesAnalyticsIngestion() {
   const store = useLocalStore();
   const canImport = AuthService.canModify("Profit Analysis", "Import Data");
   const [tab, setTab] = useState("Data Sources");
-  const [source, setSource] = useState("CSV");
+  const [source, setSource] = useState("Manual Entry");
   const [manual, setManual] = useState("");
   const [previewRows, setPreviewRows] = useState<Partial<SalesRecord>[]>([]);
 
@@ -109,14 +98,14 @@ export function SalesAnalyticsIngestion() {
       </div>
 
       {tab === "Data Sources" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sourceTypes.map((item) => (
             <button
               key={item}
               onClick={() => setSource(item)}
               className={`dashboard-surface p-4 text-left transition ${source === item ? "ring-2 ring-primary" : ""}`}
             >
-              {item.includes("Excel") ? <FileSpreadsheet className="h-5 w-5 text-primary" /> : item.includes("JSON") ? <FileJson className="h-5 w-5 text-primary" /> : item.includes("Manual") ? <Keyboard className="h-5 w-5 text-primary" /> : item.includes("Import") ? <Plug className="h-5 w-5 text-primary" /> : <Upload className="h-5 w-5 text-primary" />}
+              <Keyboard className="h-5 w-5 text-primary" />
               <h3 className="mt-3 font-semibold">{item}</h3>
               <p className="mt-1 text-sm text-muted-foreground">Choose source and continue to preview mapping.</p>
             </button>
@@ -126,29 +115,10 @@ export function SalesAnalyticsIngestion() {
 
       {tab === "Imports" ? (
         <div className="dashboard-surface space-y-4 p-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-sm font-medium">Source Type</span>
-              <Select value={source} onChange={(event) => setSource(event.target.value)}>
-                {sourceTypes.map((item) => <option key={item}>{item}</option>)}
-              </Select>
-            </label>
-            {source === "CSV" || source === "Excel" || source === "JSON" ? <label className="space-y-1">
-              <span className="text-sm font-medium">Upload File</span>
-              <Input type="file" accept={source === "CSV" ? ".csv" : source === "Excel" ? ".xlsx,.xls" : ".json"} />
-            </label> : null}
-          </div>
-          {source === "Manual Entry" ? <label className="space-y-1">
+          <label className="space-y-1">
             <span className="text-sm font-medium">Manual CSV Rows</span>
             <Textarea value={manual} onChange={(event) => setManual(event.target.value)} placeholder="YYYY-MM-DD,BILL-001,Item Name,Category,Quantity,Selling Price,Total Amount,Order Source,HH:MM" />
-          </label> : null}
-          {source.includes("Import") || source === "Billing Export" ? (
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input placeholder="Connector name" />
-              <Input placeholder="Endpoint, sheet URL, or account ID" />
-              <Textarea className="md:col-span-2" placeholder="Mapping, credentials notes, sync schedule, and validation rules" />
-            </div>
-          ) : null}
+          </label>
           <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
             Column Mapping: Date, Bill Number, Item Name, Category, Quantity, Selling Price, Total Amount, Order Source, Time
           </div>

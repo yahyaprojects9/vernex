@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthService } from "@/lib/services";
 import { LoadingState } from "@/components/ui/StateViews";
+import { AbilityProvider } from "@casl/react";
 
 export function DashboardGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
     return <main className="p-6"><LoadingState label="Checking access" /></main>;
   }
 
-  return <>{children}</>;
+  return <AbilityProvider value={AuthService.ability()}>{children}</AbilityProvider>;
 }
 
 function canAccessPath(pathname: string) {

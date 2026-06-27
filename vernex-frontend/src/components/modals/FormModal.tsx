@@ -7,13 +7,15 @@ export function FormModal({
   description,
   children,
   open = false,
-  className
+  className,
+  onClose
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
   open?: boolean;
   className?: string;
+  onClose: () => void;
 }) {
   if (!open) return null;
 
@@ -25,7 +27,7 @@ export function FormModal({
             <h2 className="text-lg font-semibold">{title}</h2>
             {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
-          <Button variant="ghost" className="h-9 w-9 px-0" aria-label="Close modal">
+          <Button variant="ghost" className="h-9 w-9 px-0" aria-label="Close modal" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>

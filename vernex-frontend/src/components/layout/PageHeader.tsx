@@ -5,11 +5,13 @@ export function PageHeader({
   title,
   description,
   actionLabel,
+  onAction,
   breadcrumbs = []
 }: {
   title: string;
   description?: string;
   actionLabel?: string;
+  onAction?: () => void;
   breadcrumbs?: string[];
 }) {
   return (
@@ -28,7 +30,7 @@ export function PageHeader({
         <h1 className="break-words text-2xl font-bold tracking-normal md:text-3xl">{title}</h1>
         {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
       </div>
-      {actionLabel ? <Button>{actionLabel}</Button> : null}
+      {actionLabel && onAction ? <Button onClick={onAction}>{actionLabel}</Button> : null}
     </div>
   );
 }

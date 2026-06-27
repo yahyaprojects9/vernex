@@ -111,7 +111,7 @@ assertIncludes(
   management,
   [
     'BranchService.create({ ...record, status: "Active"',
-    'OrganizationService.createDepartment({ ...record, status: "Active"',
+    'OrganizationService.createDepartment({ ...record, managerId: creator?.id ?? record.managerId, status: "Active"',
     'hideOnCreate: true',
     'defaultOnCreate: "Active"',
     'options: ["Active", "Inactive", "Suspended", "Closed"]'
@@ -125,7 +125,7 @@ assertIncludes(
   [
     "Import Rows",
     "Paste CSV rows",
-    "justify-center",
+    "justify-end",
     "AuthService.canModify",
     "hideOnCreate",
     "defaultOnCreate",
@@ -166,14 +166,7 @@ assertIncludes(chartRenderer, ["Legend", "labelLine", "percent", "Tooltip"], "Ch
 const salesImport = read("src/modules/profit-analysis/SalesAnalyticsIngestion.tsx");
 assertIncludes(
   salesImport,
-  [
-    'source === "CSV"',
-    'source === "Excel"',
-    'source === "JSON"',
-    'source === "Manual Entry"',
-    "Connector name",
-    "Preview Data"
-  ],
+  ["Manual Entry", "Manual CSV Rows", "parseManual", "Preview Data"],
   "Sales analytics ingestion"
 );
 

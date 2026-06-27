@@ -1,4 +1,4 @@
-import { AbilityBuilder, createMongoAbility, type MongoAbility } from "@casl/ability";
+import { AbilityBuilder, createMongoAbility, type ForcedSubject, type MongoAbility } from "@casl/ability";
 
 export type AbilityAction =
   | "manage"
@@ -14,7 +14,7 @@ export type AbilityAction =
   | "archive"
   | "restore";
 
-export type AbilitySubject =
+export type AbilitySubjectName =
   | "all"
   | "Company"
   | "User"
@@ -27,8 +27,17 @@ export type AbilitySubject =
   | "Report"
   | "Settings"
   | "Dashboard"
-  | "Notification";
+  | "Notification"
+  | "FollowUpRule"
+  | "Cost"
+  | "Wastage"
+  | "Import";
 
+type UserResource = ForcedSubject<"User"> & { id: string; managerId?: string };
+type BranchResource = ForcedSubject<"Branch"> & { id: string };
+type DepartmentResource = ForcedSubject<"Department"> & { id: string };
+
+export type AbilitySubject = AbilitySubjectName | UserResource | BranchResource | DepartmentResource;
 export type AppAbility = MongoAbility<[AbilityAction, AbilitySubject]>;
 
 export type AbilityUser = {
@@ -45,7 +54,7 @@ export type AbilityRole = {
   permissions?: Record<string, string[]>;
 };
 
-const legacyPermissionMap: Record<string, [AbilityAction, AbilitySubject]> = {
+const permissionMap: Record<string, [AbilityAction, AbilitySubjectName]> = {
   "View Users": ["read", "User"],
   "Create Users": ["create", "User"],
   "Edit Users": ["update", "User"],
@@ -58,8 +67,29 @@ const legacyPermissionMap: Record<string, [AbilityAction, AbilitySubject]> = {
   "View Branches": ["read", "Branch"],
   "Edit Branches": ["manage", "Branch"],
   "View Departments": ["read", "Department"],
-  "Edit Departments": ["manage", "Department"]
+  "Edit Departments": ["manage", "Department"],
+  "Create Lead": ["create", "Lead"],
+  "Edit Lead": ["update", "Lead"],
+  "Delete Lead": ["delete", "Lead"],
+  "Export Leads": ["export", "Lead"],
+  "Create Conversation": ["create", "Conversation"],
+  "Assign Conversation": ["assign", "Conversation"],
+  "Send Message": ["update", "Conversation"],
+  "Manage Quotations": ["manage", "Quotation"],
+  "Manage Rules": ["manage", "FollowUpRule"],
+  "Import Data": ["import", "Import"],
+  "Edit Cost": ["update", "Cost"],
+  "Edit Wastage": ["update", "Wastage"],
+  "Generate Reports": ["create", "Report"],
+  "Export Reports": ["export", "Report"],
+  "View Analytics": ["read", "Dashboard"]
 };
+
+export function abilitiesForPermission(module: string, permission: string): [AbilityAction, AbilitySubjectName][] {
+  if (permission === "View" && module === "Sales Agent") return [["read", "Lead"], ["read", "Conversation"], ["read", "Quotation"]];
+  if (permission === "View" && module === "Profit Analysis") return [["read", "Report"], ["read", "Dashboard"], ["read", "Cost"], ["read", "Wastage"]];
+  return permissionMap[permission] ? [permissionMap[permission]] : [];
+}
 
 export function defineAbilityFor(user: AbilityUser | null, role: AbilityRole | null): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
@@ -73,16 +103,19 @@ export function defineAbilityFor(user: AbilityUser | null, role: AbilityRole | n
     return build();
   }
 
-  Object.values(role.permissions ?? {}).flat().forEach((permission) => {
-    const mapped = legacyPermissionMap[permission];
-    if (mapped) can(mapped[0], mapped[1]);
-  });
-
-  if (role.permissions?.["Sales Agent"]?.some((permission) => permission.includes("View"))) {
-    can("read", ["Lead", "Conversation", "Quotation"]);
-  }
-  if (role.permissions?.["Profit Analysis"]?.some((permission) => permission.includes("View"))) {
-    can("read", ["Report", "Dashboard"]);
+  Object.entries(role.permissions ?? {}).forEach(([module, permissions]) =>
+    permissions.forEach((permission) =>
+      abilitiesForPermission(module, permission).forEach(([action, subject]) => {
+        const scopedOrganizationRead = role.id === "manager" && action === "read" && ["User", "Branch", "Department"].includes(subject);
+        if (!scopedOrganizationRead) can(action, subject);
+      })
+    )
+  );
+  if (role.id === "manager") {
+    can("read", "User", { managerId: user.id });
+    can("read", "User", { id: user.id });
+    can("read", "Branch", { id: { $in: user.branchIds } });
+    can("read", "Department", { id: { $in: user.departmentIds } });
   }
   return build();
 }

@@ -2,7 +2,7 @@ import permissionsConfig from "@/config/permissions.json";
 import rolesConfig from "@/config/roles.json";
 import settingsConfig from "@/config/settings.json";
 import { localStorageAdapter } from "@/adapters/storage/LocalStorageAdapter";
-import { defineAbilityFor, type AbilityAction, type AbilitySubject } from "@/casl/ability";
+import { abilitiesForPermission, defineAbilityFor, type AbilityAction, type AbilitySubjectName } from "@/casl/ability";
 import { createCollectionRepository } from "@/repositories/createCollectionRepository";
 import { useSessionStore } from "@/stores/sessionStore";
 import type {
@@ -366,7 +366,6 @@ const demoLeads: Lead[] = [
     phone: "9888800011",
     source: "WhatsApp",
     requirement: "Wedding catering for evening reception",
-    budget: 180000,
     location: "Anna Nagar Chennai",
     status: "New",
     leadScore: "Hot",
@@ -383,7 +382,6 @@ const demoLeads: Lead[] = [
     phone: "9888800022",
     source: "Website",
     requirement: "Corporate lunch for 80 people",
-    budget: 60000,
     location: "Velachery Chennai",
     status: "Interested",
     leadScore: "Warm",
@@ -399,6 +397,7 @@ const demoLeads: Lead[] = [
 const demoQuotations: Quotation[] = [
   {
     id: "UAT-QUOTE-WEDDING",
+    leadId: "UAT-LEAD-KARTHIK",
     quotationTitle: "Wedding Catering Quote",
     servicePackageName: "Premium Buffet Package",
     price: 180000,
@@ -777,6 +776,8 @@ function withRuntimeDefaults(store: StoreShape): StoreShape {
       ...user,
       branchIds: user.branchIds?.length ? user.branchIds : seeded.branchIds,
       departmentIds: user.departmentIds?.length ? user.departmentIds : seeded.departmentIds,
+      branchId: user.branchId ?? user.branchIds?.[0] ?? seeded.branchIds[0],
+      departmentId: user.departmentId ?? user.departmentIds?.[0] ?? seeded.departmentIds[0],
       managerId: user.managerId ?? seeded.managerId
     };
   });
@@ -823,6 +824,10 @@ function withRuntimeDefaults(store: StoreShape): StoreShape {
   }));
   next.leads = appendMissingById(next.leads, demoLeads);
   next.quotations = appendMissingById(next.quotations, demoQuotations);
+  next.quotations = next.quotations.map((quotation) => ({
+    ...quotation,
+    leadId: quotation.leadId ?? next.leads[0]?.id ?? ""
+  }));
   next.conversations = appendMissingById(next.conversations, demoConversations);
   next.rules = appendMissingById(next.rules, [...defaultAiRules, ...demoFollowUpRules]);
   next.handoffs = appendMissingById(next.handoffs, demoHandoffs);
@@ -880,6 +885,13 @@ function collectionService<K extends keyof StoreShape>(collection: K) {
 }
 
 export class AuthService {
+  static ability() {
+    const store = StorageService.read();
+    const user = this.currentUser(store);
+    const role = user ? store.roles.find((item) => item.id === user.roleId) ?? null : null;
+    return defineAbilityFor(user, role);
+  }
+
   static roleHomePath() {
     const user = this.currentUser();
     if (user?.roleId === "sales-executive" || user?.roleId === "staff") return "/dashboard/sales-agent";
@@ -941,33 +953,28 @@ export class AuthService {
   }
 
   static hasPermission(module: string, permission: string) {
-    const role = this.currentRole();
-    if (!role) return false;
-    if (role.readOnly) return permission.startsWith("View");
-    if (role.globalVisibility && role.id === "owner") return true;
-    return Boolean(role.permissions?.[module]?.includes(permission));
-  }
-
-  static canModify(module?: string, permission?: string) {
-    const role = this.currentRole();
-    if (!role || role.readOnly) return false;
-    if (!module || !permission) return role.id === "owner";
-    return this.hasPermission(module, permission);
-  }
-
-  static can(action: AbilityAction, subject: AbilitySubject) {
     const store = StorageService.read();
     const user = this.currentUser(store);
     const role = user ? store.roles.find((item) => item.id === user.roleId) ?? null : null;
-    return defineAbilityFor(user, role).can(action, subject);
+    if (!user || !role) return false;
+    const ability = defineAbilityFor(user, role);
+    const checks = abilitiesForPermission(module, permission);
+    return checks.length > 0 && checks.every(([action, subject]) => ability.can(action, subject));
+  }
+
+  static canModify(module?: string, permission?: string) {
+    if (!module || !permission) return this.can("manage", "all");
+    return this.hasPermission(module, permission);
+  }
+
+  static can(action: AbilityAction, subject: AbilitySubjectName) {
+    return this.ability().can(action, subject);
   }
 
   static canViewModule(module: string) {
-    const role = this.currentRole();
-    if (!role) return false;
-    if (role.globalVisibility) return true;
-    const permissions = role.permissions?.[module] ?? [];
-    return permissions.some((permission) => permission.startsWith("View") || permission.includes("View"));
+    if (module === "Sales Agent") return this.can("read", "Lead") || this.can("read", "Conversation") || this.can("read", "Quotation");
+    if (module === "Profit Analysis") return this.can("read", "Dashboard") || this.can("read", "Report");
+    return false;
   }
 
   static updateCurrentUserProfile(patch: Partial<Pick<StoredUser, "name" | "phone" | "companyName" | "industry" | "companySize" | "team" | "reportingManager">>) {
@@ -1069,18 +1076,20 @@ export class AnalyticsService {
     if (role?.globalVisibility) return store;
 
     const isManager = user.roleId === "manager";
-    const assignedUserIds = new Set([
-      user.id,
-      ...store.users
-        .filter(
-          (item) =>
-            item.managerId === user.id ||
-            item.reportingManager === user.id ||
-            item.branchIds.some((branchId) => user.branchIds.includes(branchId)) ||
-            item.departmentIds.some((departmentId) => user.departmentIds.includes(departmentId))
-        )
-        .map((item) => item.id)
-    ]);
+    const assignedUserIds = new Set([user.id]);
+    if (isManager) {
+      const queue = [user.id];
+      while (queue.length) {
+        const managerId = queue.shift();
+        store.users
+          .filter((item) => item.managerId === managerId || item.reportingManager === managerId)
+          .forEach((report) => {
+            if (assignedUserIds.has(report.id)) return;
+            assignedUserIds.add(report.id);
+            queue.push(report.id);
+          });
+      }
+    }
 
     const filterVisible = <T extends object>(records: T[]): T[] =>
       records.filter(

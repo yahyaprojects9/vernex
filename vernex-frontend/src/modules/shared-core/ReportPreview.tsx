@@ -21,6 +21,8 @@ export function ReportPreview({
     URL.revokeObjectURL(url);
   }
 
+  const shareText = [title, ...items.map((item) => `${item.label}: ${item.value}`)].join("\n");
+
   return (
     <section className="dashboard-surface min-w-0 overflow-hidden p-4 sm:p-5">
       <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -31,13 +33,13 @@ export function ReportPreview({
         <div className="grid gap-2 min-[420px]:grid-cols-3 sm:flex sm:flex-wrap">
           <Button variant="secondary" onClick={download}>
             <Download className="h-4 w-4" />
-            PDF
+            Download
           </Button>
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer")}>
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </Button>
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={() => { window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareText)}`; }}>
             <Mail className="h-4 w-4" />
             Email
           </Button>

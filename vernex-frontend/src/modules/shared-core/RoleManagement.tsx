@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Edit, Eye, Plus, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, ChevronRight, Edit, Eye, Plus } from "lucide-react";
 import permissionsConfig from "@/config/permissions.json";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
+import { roleSchema } from "@/schemas/organization";
 
 type RoleDraft = {
   name: string;
@@ -31,9 +32,9 @@ export function RoleManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string[]>(["owner"]);
+  const [validationError, setValidationError] = useState("");
   const canCreate = AuthService.can("create", "Role");
   const canEdit = AuthService.can("update", "Role") || AuthService.can("manage", "Role");
-  const canDelete = AuthService.can("delete", "Role");
   const sortedRoles = useMemo(
     () => [...store.roles].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
     [store.roles]
@@ -74,7 +75,13 @@ export function RoleManagement() {
   }
 
   function saveRole() {
-    if (!draft?.name.trim()) return;
+    if (!draft) return;
+    const validation = roleSchema.safeParse({ ...draft, displayOrder: Number(draft.displayOrder) });
+    if (!validation.success) {
+      setValidationError(validation.error.issues[0]?.message ?? "Invalid role details.");
+      return;
+    }
+    setValidationError("");
     if (editingId) {
       RoleService.update(editingId, {
         name: draft.name,
@@ -105,12 +112,6 @@ export function RoleManagement() {
     setEditingId(null);
   }
 
-  function deleteRole(role: RoleRecord) {
-    const activeMembers = store.users.filter((user) => user.roleId === role.id && user.status === "Active");
-    if (role.protected || role.id === "owner" || activeMembers.length) return;
-    if (window.confirm(`Delete role "${role.name}"?`)) RoleService.delete(role.id);
-  }
-
   return (
     <div className="space-y-6">
       <div className="dashboard-surface flex flex-wrap items-center justify-between gap-3 p-4">
@@ -126,24 +127,18 @@ export function RoleManagement() {
       <div className="dashboard-surface overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
-            <tr>{["S.No", "Role Name", "Description", "Members", "Status", "Created", "Actions"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
+            <tr>{["S.No", "Role Name", "Description", "Actions"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sortedRoles.map((role, index) => {
-              const members = store.users.filter((user) => user.roleId === role.id);
-              const deletionBlocked = role.protected || role.id === "owner" || members.some((user) => user.status === "Active");
               return (
                 <tr key={role.id}>
                   <td className="px-4 py-3">{index + 1}</td>
                   <td className="px-4 py-3 font-semibold">{role.name}</td>
                   <td className="max-w-sm px-4 py-3 text-muted-foreground">{role.description}</td>
-                  <td className="px-4 py-3">{members.length}</td>
-                  <td className="px-4 py-3"><StatusBadge tone={role.status === "Inactive" ? "neutral" : "success"}>{role.status ?? "Active"}</StatusBadge></td>
-                  <td className="px-4 py-3">{role.createdAt ? new Date(role.createdAt).toLocaleDateString() : "-"}</td>
                   <td className="px-4 py-3"><div className="flex gap-2">
                     <Button variant="secondary" className="h-9 w-9 px-0" aria-label="View role" onClick={() => { setViewingId(role.id); setDraft(null); }}><Eye className="h-4 w-4" /></Button>
                     <Button variant="secondary" className="h-9 w-9 px-0" aria-label="Edit role" disabled={!canEdit || role.id === "admin"} onClick={() => editRole(role)}><Edit className="h-4 w-4" /></Button>
-                    <Button variant="danger" className="h-9 w-9 px-0" aria-label="Delete role" title={deletionBlocked ? "Protected roles and roles with active users cannot be deleted" : "Delete role"} disabled={!canDelete || deletionBlocked} onClick={() => deleteRole(role)}><Trash2 className="h-4 w-4" /></Button>
                   </div></td>
                 </tr>
               );
@@ -155,6 +150,7 @@ export function RoleManagement() {
       {draft ? (
         <section className="dashboard-surface space-y-5 p-5">
           <h2 className="text-lg font-semibold">{editingId ? "Edit Role" : "Create Role"}</h2>
+          {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger">{validationError}</p> : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Input placeholder="Role name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
             <Input type="number" placeholder="Display order" value={draft.displayOrder} onChange={(event) => setDraft({ ...draft, displayOrder: event.target.value })} />
@@ -162,7 +158,7 @@ export function RoleManagement() {
             <Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select>
           </div>
           <PermissionMatrix permissions={draft.permissions} editable onToggle={togglePermission} onToggleModule={setModule} />
-          <div className="flex justify-center gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => setDraft(null)}>Cancel</Button></div>
+          <div className="flex justify-end gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => setDraft(null)}>Cancel</Button></div>
         </section>
       ) : null}
 
@@ -224,7 +220,7 @@ function HierarchyNode({ userId, depth, expanded, setExpanded }: { userId: strin
   return <div style={{ marginLeft: depth * 20 }}>
     <button className="flex w-full items-center gap-3 rounded-md border border-border p-3 text-left hover:bg-muted" onClick={() => setExpanded(isOpen ? expanded.filter((id) => id !== user.id) : [...expanded, user.id])}>
       {children.length ? isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> : <span className="w-4" />}
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>
+      {user.avatar ? <Image src={user.avatar} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-full object-cover" /> : <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>}
       <span><span className="block font-semibold">{user.name} - {role}</span><span className="block text-xs text-muted-foreground">{department} | {branch}</span></span>
     </button>
     {isOpen ? children.map((child) => <HierarchyNode key={child.id} userId={child.id} depth={depth + 1} expanded={expanded} setExpanded={setExpanded} />) : null}

@@ -57,7 +57,7 @@ export function Sidebar({
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <Link href="/dashboard" className="flex items-center gap-3">
-            {store.settings.companyLogo ? <Image src={store.settings.companyLogo} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-md object-cover" /> : <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">{companyName.charAt(0) || "V"}</span>}
+            {store.settings.companyLogo ? <Image src={store.settings.companyLogo} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-md object-cover" /> : <span aria-label="No company logo" className="h-9 w-9 rounded-md border border-dashed border-border bg-muted" />}
             <span>
               <span className="block max-w-40 truncate text-sm font-bold">{companyName}</span>
               <span className="block text-xs text-muted-foreground">Organization</span>

@@ -12,6 +12,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState({
     name: "",
@@ -71,9 +72,19 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
         </div> : null}
       </label>
       <div className="ml-auto flex min-w-0 items-center gap-2">
-        <Button variant="ghost" className="h-10 w-10 px-0" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <div className="relative">
+          <Button variant="ghost" className="h-10 w-10 px-0" aria-label="Notifications" onClick={() => setNotificationsOpen((value) => !value)}>
+            <Bell className="h-5 w-5" />
+          </Button>
+          {notificationsOpen ? <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] rounded-md border border-border bg-white p-3 shadow-soft">
+            <h3 className="font-semibold">Notifications</h3>
+            <div className="mt-2 space-y-2 text-sm">
+              <p className="rounded-md bg-muted p-2">{store.handoffs.filter((item) => item.status === "Pending").length} pending handoffs</p>
+              <p className="rounded-md bg-muted p-2">{store.leads.filter((item) => item.status === "Follow-up").length} lead follow-ups</p>
+              <p className="rounded-md bg-muted p-2">{store.imports.filter((item) => item.status === "Failed").length} failed imports</p>
+            </div>
+          </div> : null}
+        </div>
         <div className="relative">
           <button
             type="button"

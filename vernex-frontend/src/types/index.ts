@@ -19,7 +19,6 @@ export type Lead = {
   phone: string;
   source: "WhatsApp" | "Website" | "Email" | "Manual";
   requirement: string;
-  budget: number;
   location: string;
   status: LeadStatus;
   leadScore: LeadScore;
@@ -33,6 +32,7 @@ export type Lead = {
 
 export type Quotation = {
   id: string;
+  leadId: string;
   quotationTitle: string;
   servicePackageName: string;
   price: number;

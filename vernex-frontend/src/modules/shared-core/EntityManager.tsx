@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import writeXlsxFile from "write-excel-file/browser";
 import { Download, Edit, Plus, Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
@@ -13,8 +12,9 @@ import { AuthService } from "@/lib/services";
 export type FieldConfig = {
   key: string;
   label: string;
-  type?: "text" | "number" | "date" | "textarea" | "select" | "multiselect";
+  type?: "text" | "number" | "date" | "textarea" | "select" | "multiselect" | "image";
   options?: string[];
+  optionLabels?: Record<string, string>;
   hideOnCreate?: boolean;
   hideInTable?: boolean;
   defaultOnCreate?: string;
@@ -33,7 +33,8 @@ export function EntityManager<T extends { id: string; status?: string }>({
   onExport,
   filterKey = "status",
   permissions,
-  allowDelete = true
+  allowDelete = true,
+  validate
 }: {
   title: string;
   description: string;
@@ -53,6 +54,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
     export?: string;
   };
   allowDelete?: boolean;
+  validate?: (payload: Record<string, unknown>, editing: boolean) => string | null;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
@@ -61,6 +63,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
   const [selected, setSelected] = useState<string[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
+  const [validationError, setValidationError] = useState("");
   const canCreate = permissions?.create ? AuthService.canModify(permissions.module, permissions.create) : AuthService.canModify();
   const canEdit = permissions?.edit ? AuthService.canModify(permissions.module, permissions.edit) : AuthService.canModify();
   const canDelete = permissions?.delete ? AuthService.canModify(permissions.module, permissions.delete) : AuthService.canModify();
@@ -105,6 +108,12 @@ export function EntityManager<T extends { id: string; status?: string }>({
         ? (draft[field.key] ?? "").split(",").filter(Boolean)
         : draft[field.key] ?? field.defaultOnCreate ?? ""
     ]));
+    const error = validate?.(payload, Boolean(editing));
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    setValidationError("");
     if (editing) {
       onUpdate(editing.id, payload as Partial<T>);
     } else {
@@ -115,6 +124,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
   }
 
   async function exportRows(templateOnly = false) {
+    const { default: writeXlsxFile } = await import("write-excel-file/browser");
     const rows = selected.length ? records.filter((record) => selected.includes(record.id)) : visible;
     const header = fields.map((field) => ({ value: field.label, fontWeight: "bold" as const }));
     const data = templateOnly
@@ -209,6 +219,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
 
       {Object.keys(draft).length ? (
         <div className="dashboard-surface grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+          {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger md:col-span-2 xl:col-span-3">{validationError}</p> : null}
           {fields.filter((field) => editing || !field.hideOnCreate).map((field) => (
             <label key={field.key} className="space-y-1">
               <span className="text-sm font-medium">{field.label}</span>
@@ -217,7 +228,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
               ) : field.type === "select" ? (
                 <Select value={draft[field.key] ?? ""} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })}>
                   {(field.options ?? []).map((option) => (
-                    <option key={option}>{option}</option>
+                    <option key={option} value={option}>{field.optionLabels?.[option] ?? option}</option>
                   ))}
                 </Select>
               ) : field.type === "multiselect" ? (
@@ -229,16 +240,27 @@ export function EntityManager<T extends { id: string; status?: string }>({
                         const next = event.target.checked ? [...selectedValues, option] : selectedValues.filter((value) => value !== option);
                         setDraft({ ...draft, [field.key]: next.join(",") });
                       }} />
-                      {option}
+                      {field.optionLabels?.[option] ?? option}
                     </label>;
                   })}
+                </div>
+              ) : field.type === "image" ? (
+                <div className="flex min-h-20 items-center gap-3 rounded-md border border-dashed border-input p-3">
+                  {draft[field.key] ? <span role="img" aria-label="Profile preview" className="h-12 w-12 rounded-full bg-cover bg-center" style={{ backgroundImage: `url("${draft[field.key]}")` }} /> : <span className="h-12 w-12 rounded-full bg-muted" />}
+                  <Input type="file" accept="image/*" onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setDraft({ ...draft, [field.key]: String(reader.result) });
+                    reader.readAsDataURL(file);
+                  }} />
                 </div>
               ) : (
                 <Input type={field.type ?? "text"} value={draft[field.key] ?? ""} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })} />
               )}
             </label>
           ))}
-          <div className="flex items-end justify-center gap-2 md:col-span-2 xl:col-span-3">
+          <div className="flex items-end justify-end gap-2 md:col-span-2 xl:col-span-3">
             <Button onClick={save} disabled={editing ? !canEdit : !canCreate}>{editing ? "Update" : "Create"}</Button>
             <Button variant="secondary" onClick={() => setDraft({})}>Cancel</Button>
           </div>

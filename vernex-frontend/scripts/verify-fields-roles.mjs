@@ -128,8 +128,8 @@ const screenFields = {
   "User Management": ["Full Name", "Email", "Phone", "Role", "Branch", "Department", "Reporting Manager", "Employee Code", "Joining Date", "Status", "Suspended"],
   "Branch Management": ["Branch Name", "Branch Code", "Location", "Assigned Manager", "Phone", "Operating Hours", "Description", "Status", "Active", "Inactive", "Suspended", "Closed"],
   "Department Management": ["Department Name", "Branch", "Manager", "Department Members", "Description", "Status", "Active", "Inactive", "Suspended"],
-  "Lead Management": ["Lead Name", "Phone", "Source", "WhatsApp", "Website", "Email", "Manual", "Requirement", "Budget", "Location", "Status", "Lead Score", "Assigned Staff", "Next Follow-up", "Notes"],
-  "Quotation Management": ["Quotation Title", "Service/Package Name", "Price", "Description", "Terms", "Validity", "Draft", "Sent", "Accepted", "Expired"],
+  "Lead Management": ["Lead Name", "Phone", "Source", "WhatsApp", "Website", "Email", "Manual", "Requirement", "Location", "Status", "Lead Score", "Assigned Staff", "Department", "Next Follow-up", "Notes"],
+  "Quotation Management": ["Lead", "leadId", "Quotation Title", "Service/Package Name", "Price", "Description", "Terms", "Validity", "Draft", "Sent", "Accepted", "Expired"],
   "Cost Tracking": ["Item Name", "Selling Price", "Food Cost", "Gross Margin", "Margin Percentage", "Healthy", "Review", "Critical"],
   "Wastage Tracking": ["Date", "Item Name", "Quantity Wasted", "Reason", "Spoilage", "Overproduction", "Kitchen Error", "Expired", "Estimated Cost Loss", "Staff Note"],
   "Follow-Up Automation": ["Rule Name", "Trigger Condition", "No response after first contact", "Quotation sent but not accepted", "Delay Time", "Immediate", "1 day", "Template", "Friendly reminder", "Lead Status"],
@@ -160,6 +160,8 @@ includesAll(entity, "Entity shared controls", [
   "canDelete",
   "canImport"
 ]);
+assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
+includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
 const common = read("src/modules/shared-core/CommonSections.tsx");
 includesAll(common, "Reports and AI fields", [
@@ -184,22 +186,13 @@ includesAll(common, "Reports and AI fields", [
 
 const salesImport = read("src/modules/profit-analysis/SalesAnalyticsIngestion.tsx");
 includesAll(salesImport, "Sales import fields", [
-  "Source Type",
-  "Upload File",
   "Manual CSV Rows",
-  "Connector name",
-  "Endpoint, sheet URL, or account ID",
   "Preview Data",
   "Validation Engine",
   "Import and Generate Analytics",
-  "CSV",
-  "Excel",
-  "JSON",
-  "Manual Entry",
-  "POS Import",
-  "Tally Import",
-  "Google Sheets Import"
+  "Manual Entry"
 ]);
+assert(!salesImport.includes("Connector name"), "Sales import must not expose a static connector form");
 
 const delivery = read("src/app/dashboard/profit-analysis/delivery-platform-analysis/page.tsx");
 includesAll(delivery, "Delivery platform fields", [
@@ -210,12 +203,9 @@ includesAll(delivery, "Delivery platform fields", [
   "Dunzo",
   "Custom Delivery Platform",
   "Manual Upload",
-  "CSV Upload",
-  "Excel Upload",
-  "API Configuration",
-  "API key or connection name",
   "Sync Platform Data"
 ]);
+assert(!delivery.includes("API Configuration"), "Delivery platform must not expose a static API form");
 
 const conversations = read("src/modules/sales-agent/ConversationWorkspace.tsx");
 includesAll(conversations, "Conversation fields and permissions", [
@@ -245,10 +235,18 @@ const profile = read("src/components/layout/TopNavbar.tsx");
 includesAll(profile, "Profile fields", ["Profile", "Name", "Email", "Role", "Phone", "Company", "Industry", "Logout", "Edit", "Save Profile", "AuthService.updateCurrentUserProfile"]);
 
 const guard = read("src/components/layout/DashboardGuard.tsx");
-includesAll(guard, "Route permission guard", ["canAccessPath", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "Sales Agent", "Profit Analysis"]);
+includesAll(guard, "Route permission guard", ["AbilityProvider", "canAccessPath", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "Sales Agent", "Profit Analysis"]);
 
 const sidebar = read("src/components/layout/Sidebar.tsx");
 includesAll(sidebar, "Permission sidebar", ["canAccessItem", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "canViewModule"]);
+includesAll(sidebar, "Blank logo state", ["No company logo", "companyName"]);
+
+const navigation = JSON.parse(read("src/config/navigation.json"));
+const organizationOrder = navigation[0].items.map((item) => item.label);
+assert(
+  JSON.stringify(organizationOrder) === JSON.stringify(["Role Management", "User Management", "Branch Management", "Department Management", "Reports", "Settings"]),
+  "Organization menu order is incorrect"
+);
 
 const profitReports = read("src/app/dashboard/profit-analysis/profit-reports/page.tsx");
 includesAll(profitReports, "Profit report fields", ["Daily", "Weekly", "Monthly", "From date", "To date", "Download Report"]);

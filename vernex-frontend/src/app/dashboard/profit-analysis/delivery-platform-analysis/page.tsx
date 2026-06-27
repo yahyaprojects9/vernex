@@ -7,7 +7,7 @@ import { ChartCard } from "@/components/charts/ChartCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Select, Textarea } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AuthService, ImportService, SalesAnalyticsService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
@@ -18,7 +18,6 @@ export default function DeliveryPlatformAnalysisPage() {
   const store = useLocalStore();
   const canImport = AuthService.canModify("Profit Analysis", "Import Data");
   const [platform, setPlatform] = useState<SalesRecord["orderSource"] | "Uber Eats" | "Dunzo" | "Custom Delivery Platform">("Swiggy");
-  const [mode, setMode] = useState("Manual Upload");
   const [manual, setManual] = useState("");
   const platformRows = ["Dine-in", "Swiggy", "Zomato", "Takeaway"].map((source) => {
     const records = store.salesRecords.filter((row) => row.orderSource === source);
@@ -53,7 +52,7 @@ export default function DeliveryPlatformAnalysisPage() {
         id: `IMP-PLATFORM-${Date.now()}`,
         importDate: new Date().toISOString().slice(0, 10),
         importedBy: "Current user",
-        sourceType: `${platform} ${mode}`,
+        sourceType: `${platform} Manual Upload`,
         rowsImported: rows.length,
         rowsFailed: 0,
         validationErrors: [],
@@ -77,23 +76,13 @@ export default function DeliveryPlatformAnalysisPage() {
           <h2 className="text-lg font-semibold">Platform Import Configuration</h2>
           <p className="text-sm text-muted-foreground">Connect or upload platform revenue. Imported rows feed sales analytics, dashboard totals, reports, and product performance.</p>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           <Select value={platform} onChange={(event) => setPlatform(event.target.value as typeof platform)}>
             {["Swiggy", "Zomato", "Uber Eats", "Dunzo", "Custom Delivery Platform"].map((item) => <option key={item}>{item}</option>)}
           </Select>
-          <Select value={mode} onChange={(event) => setMode(event.target.value)}>
-            {["Manual Upload", "CSV Upload", "Excel Upload", "API Configuration"].map((item) => <option key={item}>{item}</option>)}
-          </Select>
-          <Input placeholder="API key or connection name" disabled={mode !== "API Configuration"} />
         </div>
-        {mode === "API Configuration" ? (
-          <Textarea placeholder="API endpoint, headers, schedule, and mapping notes" />
-        ) : mode === "Manual Upload" ? (
-          <Textarea value={manual} onChange={(event) => setManual(event.target.value)} placeholder="YYYY-MM-DD,BILL-001,Item Name,Category,Qty,Selling Price,Total Amount,HH:MM" />
-        ) : (
-          <Input type="file" accept={mode === "CSV Upload" ? ".csv" : ".xlsx,.xls"} />
-        )}
-        <div className="flex justify-center"><Button onClick={importPlatformRows} disabled={mode !== "Manual Upload" || !canImport}>Sync Platform Data</Button></div>
+        <Textarea value={manual} onChange={(event) => setManual(event.target.value)} placeholder="YYYY-MM-DD,BILL-001,Item Name,Category,Qty,Selling Price,Total Amount,HH:MM" />
+        <div className="flex justify-end"><Button onClick={importPlatformRows} disabled={!manual.trim() || !canImport}>Sync Platform Data</Button></div>
       </section>
       <div className="mt-6">
         <DataTable<(typeof platformRows)[number]>
