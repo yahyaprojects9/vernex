@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Edit, Eye, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Download, Edit, Eye, Plus, Search, SlidersHorizontal, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
@@ -68,6 +68,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [viewing, setViewing] = useState<T | null>(null);
   const [deleting, setDeleting] = useState<T | null>(null);
@@ -248,16 +249,22 @@ export function EntityManager<T extends { id: string; status?: string }>({
         </div>
       </FormModal>
 
-      <div className="dashboard-surface grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_14rem]">
-        <label className="relative min-w-0">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 pl-9 text-base" placeholder={searchPlaceholder ?? `Search ${title.toLowerCase()}`} />
-        </label>
-        <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-12">
-          {filterValues.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </Select>
+      <div className="dashboard-surface p-4">
+        <div className="flex items-center gap-3">
+          <label className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 pl-9 text-base" placeholder={searchPlaceholder ?? `Search ${title.toLowerCase()}`} />
+          </label>
+          <Button variant="secondary" className={filtersOpen ? "border-slate-400 bg-slate-200 text-slate-900 hover:bg-slate-200" : ""} aria-pressed={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}>
+            <SlidersHorizontal className="h-4 w-4" /> Filters
+          </Button>
+        </div>
+        {filtersOpen ? <label className="mt-3 block max-w-56 space-y-1 border-t border-border pt-3">
+          <span className="text-sm font-medium">Status</span>
+          <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-11">
+            {filterValues.map((value) => <option key={value}>{value}</option>)}
+          </Select>
+        </label> : null}
       </div>
 
       <FormModal open={Object.keys(draft).length > 0} title={editing ? `Edit ${title.replace(" Management", "")}` : `Add ${title.replace(" Management", "")}`} onClose={closeForm} className="max-h-[90vh] max-w-5xl overflow-y-auto">
@@ -340,7 +347,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
                 {tableFields.map((field) => (
                   <th key={field.key} className={`whitespace-nowrap px-4 py-3 align-top ${field.tableClassName ?? ""}`}>{field.label}</th>
                 ))}
-                <th className="w-40 whitespace-nowrap px-4 py-3">Actions</th>
+                <th className="w-40 whitespace-nowrap px-4 py-3 [overflow-wrap:normal]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

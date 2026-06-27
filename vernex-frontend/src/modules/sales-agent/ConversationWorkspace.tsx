@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Archive, FileText, Paperclip, Pin, Send } from "lucide-react";
+import { Archive, FileText, Paperclip, Pin, Send, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -23,6 +23,7 @@ export function ConversationWorkspace() {
   const canAssignConversation = AuthService.canModify("Sales Agent", "Assign Conversation");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeId, setActiveId] = useState(store.conversations[0]?.id ?? "");
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -82,9 +83,12 @@ export function ConversationWorkspace() {
           <Input placeholder="Create conversation" value={newCustomer} disabled={!canCreateConversation} onChange={(event) => setNewCustomer(event.target.value)} />
           <Button className="w-full" onClick={createConversation} disabled={!canCreateConversation}>Create Conversation</Button>
           <Input placeholder="Search conversations" value={query} onChange={(event) => setQuery(event.target.value)} />
-          <Select value={filter} onChange={(event) => setFilter(event.target.value)}>
+          <Button variant="secondary" className={`w-full ${filtersOpen ? "border-slate-400 bg-slate-200 text-slate-900 hover:bg-slate-200" : ""}`} aria-pressed={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}>
+            <SlidersHorizontal className="h-4 w-4" /> Filters
+          </Button>
+          {filtersOpen ? <label className="block space-y-1"><span className="text-sm font-medium">Conversation type</span><Select value={filter} onChange={(event) => setFilter(event.target.value)}>
             <option>All</option><option>AI</option><option>Human</option><option>Pinned</option><option>Archived</option>
-          </Select>
+          </Select></label> : null}
         </div>
         <div className="max-h-[620px] overflow-y-auto">
           {visible.map((conversation) => (
@@ -111,7 +115,6 @@ export function ConversationWorkspace() {
         <div className="flex items-center justify-between border-b border-border p-4">
           <div>
             <h2 className="font-semibold">{active?.customerName}</h2>
-            <p className="text-sm text-muted-foreground">Typing indicator, statuses, attachments, and AI/Human toggle</p>
           </div>
           <StatusBadge tone="success">Online</StatusBadge>
         </div>

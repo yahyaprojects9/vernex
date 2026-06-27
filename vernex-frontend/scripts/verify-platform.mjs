@@ -130,7 +130,8 @@ assertIncludes(
     "hideOnCreate",
     "defaultOnCreate",
     "min-h-12",
-    "md:grid-cols-[minmax(0,1fr)_14rem]"
+    "SlidersHorizontal",
+    "filtersOpen"
   ],
   "Entity manager"
 );
@@ -166,9 +167,11 @@ assertIncludes(chartRenderer, ["Legend", "labelLine", "percent", "Tooltip"], "Ch
 const salesImport = read("src/modules/profit-analysis/SalesAnalyticsIngestion.tsx");
 assertIncludes(
   salesImport,
-  ["Manual Entry", "Manual CSV Rows", "parseManual", "Preview Data"],
+  ["Template", "sales-analytics-template.xlsx", "read-excel-file/browser", "Import Excel file", "Preview Data"],
   "Sales analytics ingestion"
 );
+assert(!salesImport.includes("Data Sources"), "Sales Analytics must not render Data Sources");
+assert(!salesImport.includes("Preview rows will appear"), "Sales Analytics must not render the old CSV preview placeholder");
 
 const delivery = read("src/app/dashboard/profit-analysis/delivery-platform-analysis/page.tsx");
 assertIncludes(
@@ -184,7 +187,7 @@ const crm = read("src/app/dashboard/sales-agent/crm-pipeline/page.tsx");
 assertIncludes(crm, ["LeadService.update", "status as LeadStatus"], "CRM pipeline");
 
 const conversation = read("src/modules/sales-agent/ConversationWorkspace.tsx");
-assertIncludes(conversation, ["max-h-56 overflow-y-auto", "Transfer To", "patchActive({ assignedUserId", 'type="file"', "Attachments:"], "Conversation transfer");
+assertIncludes(conversation, ["max-h-56 overflow-y-auto", "Transfer To", "patchActive({ assignedUserId", 'type="file"', "Attachments:", "SlidersHorizontal", "filtersOpen"], "Conversation transfer");
 
 const sidebar = read("src/components/layout/Sidebar.tsx");
 assertIncludes(sidebar, ["overflow-y-auto", "prefetch", "<details key={group.label} open"], "Sidebar");

@@ -77,13 +77,13 @@ export function SalesAgentOverview() {
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <StatCard label="Total Leads" value={String(store.leads.length)} icon={Users} helper="All visible sources" />
-        <StatCard label="Hot Leads" value={String(store.leads.filter((l) => l.leadScore === "Hot").length)} icon={Flame} helper="High intent" />
-        <StatCard label="Warm Leads" value={String(store.leads.filter((l) => l.leadScore === "Warm").length)} icon={Zap} helper="Needs follow-up" />
-        <StatCard label="Cold Leads" value={String(store.leads.filter((l) => l.leadScore === "Cold").length)} icon={Snowflake} helper="Low urgency" />
-        <StatCard label="Pending Follow-ups" value={String(store.leads.filter((l) => l.status === "Follow-up").length)} icon={Timer} helper="Scheduled" />
-        <StatCard label="Converted" value={String(store.leads.filter((l) => l.status === "Converted").length)} icon={CheckCircle2} helper="Won leads" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <StatCard className="aspect-square" label="Total Leads" value={String(store.leads.length)} icon={Users} helper="All visible sources" />
+        <StatCard className="aspect-square" label="Hot Leads" value={String(store.leads.filter((l) => l.leadScore === "Hot").length)} icon={Flame} helper="High intent" />
+        <StatCard className="aspect-square" label="Warm Leads" value={String(store.leads.filter((l) => l.leadScore === "Warm").length)} icon={Zap} helper="Needs follow-up" />
+        <StatCard className="aspect-square" label="Cold Leads" value={String(store.leads.filter((l) => l.leadScore === "Cold").length)} icon={Snowflake} helper="Low urgency" />
+        <StatCard className="aspect-square" label="Pending Follow-ups" value={String(store.leads.filter((l) => l.status === "Follow-up").length)} icon={Timer} helper="Scheduled" />
+        <StatCard className="aspect-square" label="Converted" value={String(store.leads.filter((l) => l.status === "Converted").length)} icon={CheckCircle2} helper="Won leads" />
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <ChartCard title="Lead trend" data={leadTrend} />

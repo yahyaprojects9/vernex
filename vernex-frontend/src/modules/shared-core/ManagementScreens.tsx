@@ -106,6 +106,7 @@ export function LeadManagementScreen() {
       onCreate={(record) => LeadService.create({ ...record, assignedStaff: userLabels[record.assignedUserId ?? ""] ?? "", branchId: assignableUsers.find((user) => user.id === record.assignedUserId)?.branchIds[0], departmentId: assignableUsers.find((user) => user.id === record.assignedUserId)?.departmentIds[0] })}
       onUpdate={LeadService.update}
       onDelete={LeadService.delete}
+      actionMenu
       permissions={{ module: "Sales Agent", create: "Create Lead", edit: "Edit Lead", delete: "Delete Lead", export: "Export Leads", import: "Create Lead" }}
       fields={[
         { key: "leadName", label: "Lead Name" },
@@ -134,6 +135,7 @@ export function QuotationManagementScreen() {
       onCreate={(record) => QuotationService.create(record)}
       onUpdate={QuotationService.update}
       onDelete={QuotationService.delete}
+      actionMenu
       permissions={{ module: "Sales Agent", create: "Manage Quotations", edit: "Manage Quotations", delete: "Manage Quotations", export: "Manage Quotations" }}
       validate={(payload) => payload.leadId ? null : "Select a lead before creating the quotation."}
       fields={[

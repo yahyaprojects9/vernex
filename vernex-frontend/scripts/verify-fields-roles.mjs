@@ -180,6 +180,7 @@ assert(!userManagement.includes('type="checkbox"'), "User Management must not re
 includesAll(management, "Organization tables without row selection", ['title="Branch Management"', 'title="Department Management"', "allowSelection={false}"]);
 includesAll(management, "Organization table search and actions", ['searchPlaceholder="Search branch"', 'searchPlaceholder="Search department"', "actionMenu"]);
 includesAll(entity, "Kebab table actions", ["KebabActionMenu", "actionMenuId", 'label: "View"', 'label: "Edit"']);
+includesAll(entity, "Shared management filters", ["SlidersHorizontal", "filtersOpen", "aria-pressed={filtersOpen}", "Status"]);
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
@@ -206,13 +207,17 @@ includesAll(common, "Reports and AI fields", [
 
 const salesImport = read("src/modules/profit-analysis/SalesAnalyticsIngestion.tsx");
 includesAll(salesImport, "Sales import fields", [
-  "Manual CSV Rows",
+  "sales-analytics-template.xlsx",
+  "read-excel-file/browser",
+  "write-excel-file/browser",
+  "Import Excel file",
   "Preview Data",
   "Validation Engine",
-  "Import and Generate Analytics",
-  "Manual Entry"
+  "Import and Generate Analytics"
 ]);
 assert(!salesImport.includes("Connector name"), "Sales import must not expose a static connector form");
+assert(!salesImport.includes("Data Sources"), "Sales import must not expose the removed Data Sources tab");
+assert(!salesImport.includes("Preview rows will appear after you enter CSV data."), "Sales import must not expose the old preview placeholder");
 
 const delivery = read("src/app/dashboard/profit-analysis/delivery-platform-analysis/page.tsx");
 includesAll(delivery, "Delivery platform fields", [
@@ -283,6 +288,12 @@ assert(!organizationReports.includes("Insights and recommendations"), "Organizat
 
 const settings = read("src/modules/shared-core/SettingsForm.tsx");
 includesAll(settings, "Staged settings", ["setDraft", "saveSettings", "Save Settings", 'field.control === "color"', "Company logo preview"]);
+includesAll(settings, "Settings control layout", ["md:gap-x-12", "xl:gap-x-16", "!w-12", "aspect-square", "block h-5 w-5"]);
+
+const overviews = read("src/modules/shared-core/DynamicOverviews.tsx");
+includesAll(overviews, "Data-driven overview charts", ["SalesAgentOverview", "ProfitOverview", "Lead trend", "Lead source split", "AnalyticsService.salesTrend()", 'className="aspect-square"']);
+includesAll(read("src/app/dashboard/profit-analysis/peak-hour-analysis/page.tsx"), "Peak hour chart", ["hourlySales", "ChartCard", 'type="bar"']);
+includesAll(read("src/app/dashboard/profit-analysis/delivery-platform-analysis/page.tsx"), "Delivery platform chart", ["platformRows", "ChartCard", 'type="bar"']);
 
 includesAll(crm, "Optimistic CRM drag", ["pipelineLeads", "setPipelineLeads", "moveLead"]);
 

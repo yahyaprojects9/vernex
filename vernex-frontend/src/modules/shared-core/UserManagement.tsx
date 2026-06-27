@@ -252,10 +252,10 @@ export function UserManagementScreen() {
           <table className="w-full min-w-[860px] table-fixed text-left">
             <colgroup>
               <col className="w-[30%]" />
-              <col className="w-[35%]" />
+              <col className="w-[31%]" />
               <col className="w-[14%]" />
               <col className="w-[15%]" />
-              <col className="w-[6%]" />
+              <col className="w-[10%]" />
             </colgroup>
             <thead className="bg-muted/70 text-xs font-semibold uppercase text-muted-foreground">
               <tr>
@@ -263,7 +263,7 @@ export function UserManagementScreen() {
                 <th className="px-5 py-3">Access</th>
                 <th className="whitespace-nowrap px-5 py-3">Last active</th>
                 <th className="whitespace-nowrap px-5 py-3">Date added</th>
-                <th className="px-3 py-3"><span className="sr-only">Actions</span></th>
+                <th className="whitespace-nowrap px-3 py-3 [overflow-wrap:normal]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -348,9 +348,9 @@ export function UserManagementScreen() {
 
 function AccessBadge({ children, tone }: { children: React.ReactNode; tone: "role" | "branch" | "department" }) {
   const tones = {
-    role: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    branch: "border-sky-200 bg-sky-50 text-sky-700",
-    department: "border-violet-200 bg-violet-50 text-violet-700"
+    role: "border-emerald-300 bg-emerald-100 text-emerald-800",
+    branch: "border-sky-300 bg-sky-100 text-sky-800",
+    department: "border-violet-300 bg-violet-100 text-violet-800"
   };
   return <span className={`max-w-40 truncate rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
 }

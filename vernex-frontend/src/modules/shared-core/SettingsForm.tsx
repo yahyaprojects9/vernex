@@ -40,7 +40,7 @@ export function SettingsForm() {
         <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings" />
       </label>
       <section className="dashboard-surface p-5">
-          <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+          <div className="grid gap-y-7 md:grid-cols-2 md:gap-x-12 xl:gap-x-16">
             {results.map(({ field }) => {
               const value = draft[field.slug] ?? field.defaultValue;
               const editable = field.editableRoles.includes(roleId);
@@ -70,8 +70,8 @@ function SettingControl({ field, value, disabled, onChange }: {
     const selectedValue = field.slug === "dateFormat" ? String(value ?? "").toUpperCase() : String(value ?? "");
     return <Select value={selectedValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
   }
-  if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-teal-700" />;
-  if (field.control === "color") return <Input aria-label={field.label} className="h-12 w-12 min-h-12 cursor-pointer rounded-md p-1" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
+  if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="block h-5 w-5 accent-primary" />;
+  if (field.control === "color") return <Input aria-label={field.label} className="!h-12 !min-h-12 !w-12 !min-w-12 !max-w-12 aspect-square cursor-pointer rounded-md p-1" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
   if (field.control === "image") return <div className="space-y-3">
     <Input className="max-w-full file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1" type="file" accept="image/*" disabled={disabled} onChange={(event) => {
       const file = event.target.files?.[0];

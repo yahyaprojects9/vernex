@@ -74,7 +74,6 @@ export default function DeliveryPlatformAnalysisPage() {
       <section className="dashboard-surface mt-6 space-y-4 p-5">
         <div>
           <h2 className="text-lg font-semibold">Platform Import Configuration</h2>
-          <p className="text-sm text-muted-foreground">Connect or upload platform revenue. Imported rows feed sales analytics, dashboard totals, reports, and product performance.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <Select value={platform} onChange={(event) => setPlatform(event.target.value as typeof platform)}>

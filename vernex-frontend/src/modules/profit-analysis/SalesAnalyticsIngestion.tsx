@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Keyboard } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Upload } from "lucide-react";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AuthService, ImportService, SalesAnalyticsService } from "@/lib/services";
@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import type { SalesRecord } from "@/types";
 
-const sourceTypes = ["Manual Entry"];
+const templateHeaders = ["Date", "Bill Number", "Item Name", "Category", "Quantity", "Selling Price", "Total Amount", "Order Source", "Time"];
 
 function validateRows(rows: Partial<SalesRecord>[]) {
   const errors: string[] = [];
@@ -33,9 +33,7 @@ function validateRows(rows: Partial<SalesRecord>[]) {
 export function SalesAnalyticsIngestion() {
   const store = useLocalStore();
   const canImport = AuthService.canModify("Profit Analysis", "Import Data");
-  const [tab, setTab] = useState("Data Sources");
-  const [source, setSource] = useState("Manual Entry");
-  const [manual, setManual] = useState("");
+  const [tab, setTab] = useState("Imports");
   const [previewRows, setPreviewRows] = useState<Partial<SalesRecord>[]>([]);
 
   const validationErrors = useMemo(() => validateRows(previewRows), [previewRows]);
@@ -47,25 +45,29 @@ export function SalesAnalyticsIngestion() {
     }));
   }, [store.salesRecords]);
 
-  function parseManual() {
-    const rows = manual
-      .split("\n")
-      .filter(Boolean)
-      .map((line, index) => {
-        const [date, billNumber, itemName, category, quantity, sellingPrice, totalAmount, orderSource, time] = line.split(",");
-        return {
-          id: `SAL-IMPORT-${Date.now()}-${index}`,
-          date,
-          billNumber,
-          itemName,
-          category,
-          quantity: Number(quantity),
-          sellingPrice: Number(sellingPrice),
-          totalAmount: Number(totalAmount),
-          orderSource: (orderSource || "Dine-in") as SalesRecord["orderSource"],
-          time
-        };
-      });
+  async function downloadTemplate() {
+    const { default: writeXlsxFile } = await import("write-excel-file/browser");
+    await writeXlsxFile([templateHeaders.map((value) => ({ value, fontWeight: "bold" as const }))]).toFile("sales-analytics-template.xlsx");
+  }
+
+  async function readExcel(file: File) {
+    const { readSheet } = await import("read-excel-file/browser");
+    const sheet = await readSheet(file);
+    if (!sheet.length) return;
+    const headers = sheet[0].map((value) => String(value ?? "").trim().toLowerCase());
+    const at = (row: typeof sheet[number], heading: string) => row[headers.indexOf(heading.toLowerCase())];
+    const rows = sheet.slice(1).filter((row) => row.some((value) => value !== null && value !== "")).map((row, index) => ({
+      id: `SAL-IMPORT-${Date.now()}-${index}`,
+      date: String(at(row, "Date") ?? ""),
+      billNumber: String(at(row, "Bill Number") ?? ""),
+      itemName: String(at(row, "Item Name") ?? ""),
+      category: String(at(row, "Category") ?? ""),
+      quantity: Number(at(row, "Quantity") ?? 0),
+      sellingPrice: Number(at(row, "Selling Price") ?? 0),
+      totalAmount: Number(at(row, "Total Amount") ?? 0),
+      orderSource: String(at(row, "Order Source") ?? "Dine-in") as SalesRecord["orderSource"],
+      time: String(at(row, "Time") ?? "")
+    }));
     setPreviewRows(rows);
     setTab("Validation");
   }
@@ -77,7 +79,7 @@ export function SalesAnalyticsIngestion() {
       id: `IMP-${Date.now()}`,
       importDate: new Date().toISOString().slice(0, 10),
       importedBy: AuthService.currentUser()?.name ?? "Current user",
-      sourceType: source,
+      sourceType: "Excel Upload",
       rowsImported: previewRows.length,
       rowsFailed: 0,
       validationErrors: [],
@@ -90,39 +92,23 @@ export function SalesAnalyticsIngestion() {
   return (
     <div className="space-y-6">
       <div className="dashboard-surface flex flex-wrap gap-2 p-3">
-        {["Data Sources", "Imports", "Validation", "History", "Analytics"].map((item) => (
+        {["Imports", "Validation", "History", "Analytics"].map((item) => (
           <Button key={item} variant={tab === item ? "primary" : "secondary"} onClick={() => setTab(item)}>
             {item}
           </Button>
         ))}
       </div>
 
-      {tab === "Data Sources" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {sourceTypes.map((item) => (
-            <button
-              key={item}
-              onClick={() => setSource(item)}
-              className={`dashboard-surface p-4 text-left transition ${source === item ? "ring-2 ring-primary" : ""}`}
-            >
-              <Keyboard className="h-5 w-5 text-primary" />
-              <h3 className="mt-3 font-semibold">{item}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Choose source and continue to preview mapping.</p>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
       {tab === "Imports" ? (
         <div className="dashboard-surface space-y-4 p-5">
-          <label className="space-y-1">
-            <span className="text-sm font-medium">Manual CSV Rows</span>
-            <Textarea value={manual} onChange={(event) => setManual(event.target.value)} placeholder="YYYY-MM-DD,BILL-001,Item Name,Category,Quantity,Selling Price,Total Amount,Order Source,HH:MM" />
-          </label>
-          <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
-            Column Mapping: Date, Bill Number, Item Name, Category, Quantity, Selling Price, Total Amount, Order Source, Time
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void downloadTemplate()}><Download className="h-4 w-4" />Template</Button>
           </div>
-          <Button onClick={parseManual} disabled={source !== "Manual Entry" || !canImport}>Preview Data</Button>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium">Import Excel file</span>
+            <Input type="file" accept=".xlsx,.xls" disabled={!canImport} onChange={(event) => { const file = event.target.files?.[0]; if (file) void readExcel(file); }} />
+          </label>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground"><Upload className="h-4 w-4" />Upload the completed template to preview and validate its rows.</p>
         </div>
       ) : null}
 
@@ -141,11 +127,7 @@ export function SalesAnalyticsIngestion() {
                       <td className="p-2">{row.category}</td>
                       <td className="p-2">{formatCurrency(Number(row.totalAmount ?? 0))}</td>
                     </tr>
-                  )) : (
-                    <tr>
-                      <td className="p-4 text-sm text-muted-foreground">Preview rows will appear after you enter CSV data.</td>
-                    </tr>
-                  )}
+                  )) : null}
                 </tbody>
               </table>
             </div>
