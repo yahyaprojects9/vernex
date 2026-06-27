@@ -124,8 +124,8 @@ includesAll(services, "V5 seeded acceptance dataset", [
 ]);
 
 const management = read("src/modules/shared-core/ManagementScreens.tsx");
+const userManagement = read("src/modules/shared-core/UserManagement.tsx");
 const screenFields = {
-  "User Management": ["Full Name", "Email", "Phone", "Role", "Branch", "Department", "Reporting Manager", "Employee Code", "Joining Date", "Status", "Suspended"],
   "Branch Management": ["Branch Name", "Branch Code", "Location", "Assigned Manager", "Phone", "Operating Hours", "Description", "Status", "Active", "Inactive", "Suspended", "Closed"],
   "Department Management": ["Department Name", "Branch", "Manager", "Department Members", "Description", "Status", "Active", "Inactive", "Suspended"],
   "Lead Management": ["Lead Name", "Phone", "Source", "WhatsApp", "Website", "Email", "Manual", "Requirement", "Location", "Status", "Lead Score", "Assigned Staff", "Department", "Next Follow-up", "Notes"],
@@ -171,7 +171,8 @@ includesAll(entity, "Modal CRUD and Excel import", [
   "flex-nowrap",
   "whitespace-nowrap"
 ]);
-includesAll(management, "User modal table behavior", ["allowSelection={false}", "allowDelete={false}", "Profile Picture"]);
+includesAll(userManagement, "User directory behavior", ["All users", "Add user", "Import", "Export", "Template", "MoreVertical", "View details", "Edit user", "Set inactive", "FormModal", "read-excel-file/browser"]);
+assert(!userManagement.includes('type="checkbox"'), "User Management must not render unused checkboxes");
 assert(!management.includes('{ key: "budget", label: "Budget"'), "Lead Management must not render Budget");
 includesAll(entity, "Excel exports", ["write-excel-file/browser", "Template", ".xlsx"]);
 
