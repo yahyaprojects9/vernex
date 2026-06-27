@@ -1,55 +1,65 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Input";
-import { SettingsService } from "@/lib/services";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { Input, Select, Textarea } from "@/components/ui/Input";
+import { AuthService, SettingsService } from "@/lib/services";
+import { settingsRegistry, type SettingField } from "@/config/settings/registry";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 
 export function SettingsForm() {
   const store = useLocalStore();
-  const settings = store.settings;
+  const [query, setQuery] = useState("");
+  const roleId = AuthService.currentRole()?.id ?? "viewer";
+  const results = useMemo(() => settingsRegistry.searchableFields(query, roleId), [query, roleId]);
+  const grouped = useMemo(() => {
+    return results.reduce<Record<string, typeof results>>((groups, result) => {
+      (groups[result.section.heading] ??= []).push(result);
+      return groups;
+    }, {});
+  }, [results]);
+
+  function update(field: SettingField, value: string | boolean) {
+    SettingsService.update({ [field.slug]: value } as Parameters<typeof SettingsService.update>[0]);
+  }
 
   return (
-    <form className="dashboard-surface grid gap-4 p-5 md:grid-cols-2">
-      <label className="space-y-1">
-        <span className="text-sm font-medium">Business name</span>
-        <Input defaultValue={settings.companyName} onBlur={(event) => SettingsService.update({ companyName: event.target.value })} />
+    <div className="space-y-5">
+      <label className="dashboard-surface relative block p-4">
+        <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings by heading, label, slug, or description" />
       </label>
-      <label className="space-y-1">
-        <span className="text-sm font-medium">Working hours</span>
-        <Input defaultValue={settings.workingHours} onBlur={(event) => SettingsService.update({ workingHours: event.target.value })} />
-      </label>
-      <label className="space-y-1">
-        <span className="text-sm font-medium">Language</span>
-        <Select defaultValue={settings.language} onChange={(event) => SettingsService.update({ language: event.target.value })}>
-          <option>English</option>
-          <option>Hindi</option>
-          <option>Malayalam</option>
-          <option>Tamil</option>
-        </Select>
-      </label>
-      <label className="space-y-1">
-        <span className="text-sm font-medium">Currency</span>
-        <Select defaultValue={settings.currency} onChange={(event) => SettingsService.update({ currency: event.target.value })}>
-          <option>INR</option>
-          <option>USD</option>
-          <option>AED</option>
-        </Select>
-      </label>
-      <label className="dashboard-surface flex cursor-pointer items-center justify-center border-dashed p-5 text-sm font-medium md:col-span-2">
-        Upload logo
-        <input type="file" className="sr-only" />
-      </label>
-      <div className="flex items-center justify-between rounded-md bg-muted/70 p-4 md:col-span-2">
-        <div>
-          <p className="font-semibold">Notifications</p>
-          <p className="text-sm text-muted-foreground">Lead alerts, report reminders, and handoff updates.</p>
-        </div>
-        <input type="checkbox" defaultChecked className="h-5 w-5 accent-teal-700" />
-      </div>
-      <div className="md:col-span-2">
-        <Button type="button">Save settings</Button>
-      </div>
-    </form>
+      {Object.entries(grouped).map(([heading, items]) => (
+        <section key={heading} className="dashboard-surface p-5">
+          <h2 className="text-lg font-semibold">{heading}</h2>
+          <p className="text-sm text-muted-foreground">{items[0]?.section.subheading}</p>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {items.map(({ field }) => {
+              const value = (store.settings as Record<string, unknown>)[field.slug] ?? field.defaultValue;
+              const editable = field.editableRoles.includes(roleId);
+              return <label key={field.slug} id={field.slug} className="space-y-1">
+                <span className="text-sm font-medium">{field.label}</span>
+                <span className="block text-xs text-muted-foreground">{field.description}</span>
+                <SettingControl field={field} value={value} disabled={!editable} onChange={(next) => update(field, next)} />
+              </label>;
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
   );
+}
+
+function SettingControl({ field, value, disabled, onChange }: { field: SettingField; value: unknown; disabled: boolean; onChange: (value: string | boolean) => void }) {
+  if (field.control === "textarea") return <Textarea value={String(value ?? "")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
+  if (field.control === "dropdown") return <Select value={String(value ?? "")} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
+  if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-teal-700" />;
+  if (field.control === "image") return <Input type="file" accept="image/*" disabled={disabled} onChange={(event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onChange(String(reader.result));
+    reader.readAsDataURL(file);
+  }} />;
+  return <Input type={field.control === "phone" ? "tel" : field.control} value={String(value ?? "")} placeholder={field.placeholder} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
 }

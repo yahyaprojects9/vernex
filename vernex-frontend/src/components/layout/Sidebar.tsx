@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
@@ -8,6 +9,7 @@ import { navigationGroups } from "@/lib/navigation";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/lib/services";
+import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 
 export function Sidebar({
   open,
@@ -18,6 +20,8 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const store = useLocalStore();
+  const companyName = store.settings.companyName || store.settings.brandName;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -28,11 +32,11 @@ export function Sidebar({
 
   function canAccessItem(item: (typeof navigationGroups)[number]["items"][number]) {
     if (item.href === "/dashboard") return true;
-    if (item.href === "/dashboard/users") return AuthService.hasPermission("Shared Core", "View Users");
-    if (item.href === "/dashboard/roles") return AuthService.hasPermission("Shared Core", "View Roles");
-    if (item.href === "/dashboard/branches") return AuthService.hasPermission("Shared Core", "View Branches");
-    if (item.href === "/dashboard/departments") return AuthService.hasPermission("Shared Core", "View Departments");
-    if (item.href === "/dashboard/settings") return AuthService.currentRole()?.id === "owner";
+    if (item.href === "/dashboard/users") return AuthService.can("read", "User");
+    if (item.href === "/dashboard/roles") return AuthService.can("read", "Role");
+    if (item.href === "/dashboard/branches") return AuthService.can("read", "Branch");
+    if (item.href === "/dashboard/departments") return AuthService.can("read", "Department");
+    if (item.href === "/dashboard/settings") return AuthService.can("read", "Settings") || AuthService.currentRole()?.id === "owner";
     if (item.href === "/dashboard/reports") return AuthService.hasPermission("Profit Analysis", "View Analytics") || AuthService.hasPermission("Profit Analysis", "Export Reports");
     if (item.href.includes("/dashboard/sales-agent")) return AuthService.canViewModule("Sales Agent");
     if (item.href.includes("/dashboard/profit-analysis")) return AuthService.canViewModule("Profit Analysis");
@@ -53,12 +57,10 @@ export function Sidebar({
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-              V
-            </span>
+            {store.settings.companyLogo ? <Image src={store.settings.companyLogo} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-md object-cover" /> : <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">{companyName.charAt(0) || "V"}</span>}
             <span>
-              <span className="block text-sm font-bold">Vernex</span>
-              <span className="block text-xs text-muted-foreground">Platform</span>
+              <span className="block max-w-40 truncate text-sm font-bold">{companyName}</span>
+              <span className="block text-xs text-muted-foreground">Organization</span>
             </span>
           </Link>
           <Button variant="ghost" className="h-9 w-9 px-0 lg:hidden" onClick={onClose} aria-label="Close sidebar">
@@ -67,7 +69,7 @@ export function Sidebar({
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-5">
           {navigationGroups.map((group) => {
-            const isProductGroup = group.label !== "Shared Core";
+            const isProductGroup = group.label !== "Organization";
             const items = group.items.filter(canAccessItem);
             if (!items.length) return null;
 

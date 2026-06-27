@@ -1,0 +1,7 @@
+{
+  "heading": "Notifications",
+  "subheading": "Delivery Preferences",
+  "fields": [
+    { "slug": "notificationsEnabled", "label": "Enable Notifications", "description": "Lead alerts, reports, and handoff updates.", "control": "toggle", "defaultValue": true, "editableRoles": ["owner", "manager"], "visibleRoles": ["owner", "manager", "admin", "staff"] }
+  ]
+}

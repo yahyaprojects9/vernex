@@ -4,7 +4,7 @@ import { SettingsForm } from "@/modules/shared-core/SettingsForm";
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Settings" description="Business profile, logo, working hours, language, currency, and notifications." breadcrumbs={["Shared Core Platform", "Settings"]} />
+      <PageHeader title="Settings" description="JSON-driven company, branding, business, appearance, and notification configuration." breadcrumbs={["Organization", "Settings"]} />
       <SettingsForm />
     </>
   );

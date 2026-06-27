@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import writeXlsxFile from "write-excel-file/browser";
 import { Download, Edit, Plus, Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
@@ -12,7 +13,7 @@ import { AuthService } from "@/lib/services";
 export type FieldConfig = {
   key: string;
   label: string;
-  type?: "text" | "number" | "date" | "textarea" | "select";
+  type?: "text" | "number" | "date" | "textarea" | "select" | "multiselect";
   options?: string[];
   hideOnCreate?: boolean;
   hideInTable?: boolean;
@@ -31,7 +32,8 @@ export function EntityManager<T extends { id: string; status?: string }>({
   onDelete,
   onExport,
   filterKey = "status",
-  permissions
+  permissions,
+  allowDelete = true
 }: {
   title: string;
   description: string;
@@ -50,6 +52,7 @@ export function EntityManager<T extends { id: string; status?: string }>({
     import?: string;
     export?: string;
   };
+  allowDelete?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
@@ -89,11 +92,19 @@ export function EntityManager<T extends { id: string; status?: string }>({
 
   function startEdit(record: T) {
     setEditing(record);
-    setDraft(Object.fromEntries(fields.map((field) => [field.key, String((record as Record<string, unknown>)[field.key] ?? "")])));
+    setDraft(Object.fromEntries(fields.map((field) => {
+      const value = (record as Record<string, unknown>)[field.key];
+      return [field.key, Array.isArray(value) ? value.join(",") : String(value ?? "")];
+    })));
   }
 
   function save() {
-    const payload = Object.fromEntries(fields.map((field) => [field.key, draft[field.key] ?? field.defaultOnCreate ?? ""]));
+    const payload = Object.fromEntries(fields.map((field) => [
+      field.key,
+      field.type === "multiselect"
+        ? (draft[field.key] ?? "").split(",").filter(Boolean)
+        : draft[field.key] ?? field.defaultOnCreate ?? ""
+    ]));
     if (editing) {
       onUpdate(editing.id, payload as Partial<T>);
     } else {
@@ -103,16 +114,18 @@ export function EntityManager<T extends { id: string; status?: string }>({
     setEditing(null);
   }
 
-  function exportRows() {
+  async function exportRows(templateOnly = false) {
     const rows = selected.length ? records.filter((record) => selected.includes(record.id)) : visible;
-    const csv = [fields.map((field) => field.label).join(","), ...rows.map((row) => fields.map((field) => JSON.stringify((row as Record<string, unknown>)[field.key] ?? "")).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${title.toLowerCase().replaceAll(" ", "-")}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const header = fields.map((field) => ({ value: field.label, fontWeight: "bold" as const }));
+    const data = templateOnly
+      ? [header]
+      : [
+          header,
+          ...rows.map((row) => fields.map((field) => ({ value: String((row as Record<string, unknown>)[field.key] ?? "") })))
+        ];
+    await writeXlsxFile(data, { sheet: title.slice(0, 31) }).toFile(
+      `${title.toLowerCase().replaceAll(" ", "-")}${templateOnly ? "-template" : ""}.xlsx`
+    );
     onExport?.();
   }
 
@@ -149,11 +162,12 @@ export function EntityManager<T extends { id: string; status?: string }>({
             <Upload className="h-4 w-4" />
             Import
           </Button> : null}
-          {canExport ? <Button variant="secondary" onClick={exportRows}>
+          {canExport ? <Button variant="secondary" onClick={() => exportRows(false)}>
             <Download className="h-4 w-4" />
-            Export
+            Excel
           </Button> : null}
-          {canDelete && selected.length ? (
+          {canExport ? <Button variant="secondary" onClick={() => exportRows(true)}>Template</Button> : null}
+          {allowDelete && canDelete && selected.length ? (
             <Button
               variant="danger"
               onClick={() => {
@@ -206,6 +220,19 @@ export function EntityManager<T extends { id: string; status?: string }>({
                     <option key={option}>{option}</option>
                   ))}
                 </Select>
+              ) : field.type === "multiselect" ? (
+                <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-input p-2">
+                  {(field.options ?? []).map((option) => {
+                    const selectedValues = (draft[field.key] ?? "").split(",").filter(Boolean);
+                    return <label key={option} className="flex items-center gap-2 rounded p-1 text-sm hover:bg-muted">
+                      <input type="checkbox" checked={selectedValues.includes(option)} onChange={(event) => {
+                        const next = event.target.checked ? [...selectedValues, option] : selectedValues.filter((value) => value !== option);
+                        setDraft({ ...draft, [field.key]: next.join(",") });
+                      }} />
+                      {option}
+                    </label>;
+                  })}
+                </div>
               ) : (
                 <Input type={field.type ?? "text"} value={draft[field.key] ?? ""} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })} />
               )}
@@ -266,9 +293,9 @@ export function EntityManager<T extends { id: string; status?: string }>({
                       <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => startEdit(record)} aria-label="Edit" disabled={!canEdit}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="danger" className="h-9 w-9 px-0" onClick={() => onDelete(record.id)} aria-label="Delete" disabled={!canDelete}>
+                      {allowDelete ? <Button variant="danger" className="h-9 w-9 px-0" onClick={() => onDelete(record.id)} aria-label="Delete" disabled={!canDelete}>
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> : null}
                     </div>
                   </td>
                 </tr>

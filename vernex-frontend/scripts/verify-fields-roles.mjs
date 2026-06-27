@@ -66,7 +66,7 @@ includesAll(services, "Mock role accounts", [
 ]);
 includesAll(services, "Default limited role permissions", [
   "defaultRolePermissions",
-  "\"Shared Core\": [\"View Users\", \"View Branches\", \"View Departments\"]",
+  "\"Organization\": [\"View Users\", \"View Branches\", \"View Departments\"]",
   "\"Sales Agent\": [\"View\"]",
   "\"Profit Analysis\": [\"View\", \"View Analytics\"]",
   "\"sales-executive\"",
@@ -125,9 +125,9 @@ includesAll(services, "V5 seeded acceptance dataset", [
 
 const management = read("src/modules/shared-core/ManagementScreens.tsx");
 const screenFields = {
-  "User Management": ["Full Name", "Email", "Phone", "Role", "Status", "Company", "Company Size", "Industry"],
-  "Branch Management": ["Branch Name", "Location", "Manager", "Description", "Status", "Active", "Inactive", "Archived", "Suspended"],
-  "Department Management": ["Department Name", "Manager", "Description", "Status", "Active", "Inactive", "Archived", "Suspended"],
+  "User Management": ["Full Name", "Email", "Phone", "Role", "Branch", "Department", "Reporting Manager", "Employee Code", "Joining Date", "Status", "Suspended"],
+  "Branch Management": ["Branch Name", "Branch Code", "Location", "Assigned Manager", "Phone", "Operating Hours", "Description", "Status", "Active", "Inactive", "Suspended", "Closed"],
+  "Department Management": ["Department Name", "Branch", "Manager", "Department Members", "Description", "Status", "Active", "Inactive", "Suspended"],
   "Lead Management": ["Lead Name", "Phone", "Source", "WhatsApp", "Website", "Email", "Manual", "Requirement", "Budget", "Location", "Status", "Lead Score", "Assigned Staff", "Next Follow-up", "Notes"],
   "Quotation Management": ["Quotation Title", "Service/Package Name", "Price", "Description", "Terms", "Validity", "Draft", "Sent", "Accepted", "Expired"],
   "Cost Tracking": ["Item Name", "Selling Price", "Food Cost", "Gross Margin", "Margin Percentage", "Healthy", "Review", "Critical"],
@@ -237,7 +237,7 @@ const crm = read("src/app/dashboard/sales-agent/crm-pipeline/page.tsx");
 includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost", "LeadService.update"]);
 
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
-includesAll(roles, "Permission matrix UI", ["Role List", "Role Details", "Permission Matrix", "Select all"]);
+includesAll(roles, "Permission matrix UI", ["Organization Roles", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
 
@@ -245,10 +245,10 @@ const profile = read("src/components/layout/TopNavbar.tsx");
 includesAll(profile, "Profile fields", ["Profile", "Name", "Email", "Role", "Phone", "Company", "Industry", "Logout", "Edit", "Save Profile", "AuthService.updateCurrentUserProfile"]);
 
 const guard = read("src/components/layout/DashboardGuard.tsx");
-includesAll(guard, "Route permission guard", ["canAccessPath", "View Users", "View Roles", "Sales Agent", "Profit Analysis"]);
+includesAll(guard, "Route permission guard", ["canAccessPath", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "Sales Agent", "Profit Analysis"]);
 
 const sidebar = read("src/components/layout/Sidebar.tsx");
-includesAll(sidebar, "Permission sidebar", ["canAccessItem", "View Users", "View Roles", "canViewModule"]);
+includesAll(sidebar, "Permission sidebar", ["canAccessItem", "AuthService.can(\"read\", \"User\")", "AuthService.can(\"read\", \"Role\")", "canViewModule"]);
 
 const profitReports = read("src/app/dashboard/profit-analysis/profit-reports/page.tsx");
 includesAll(profitReports, "Profit report fields", ["Daily", "Weekly", "Monthly", "From date", "To date", "Download Report"]);

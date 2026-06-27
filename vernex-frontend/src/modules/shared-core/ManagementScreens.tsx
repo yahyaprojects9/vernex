@@ -16,29 +16,49 @@ import {
   FollowUpRuleService,
   HandoffService,
   ProductPerformanceService
+  ,OrganizationService
 } from "@/lib/services";
 import type { CostTracking, FollowUpRule, HandoffRequest, Lead, MenuItemPerformance, Quotation, WastageEntry } from "@/types";
 
 export function UserManagementScreen() {
   const store = useLocalStore();
+  const roleName = Object.fromEntries(store.roles.map((role) => [role.id, role.name]));
+  const branchName = Object.fromEntries(store.branches.map((branch) => [branch.id, branch.name]));
+  const departmentName = Object.fromEntries(store.departments.map((department) => [department.id, department.name]));
+  const userName = Object.fromEntries(store.users.map((user) => [user.id, user.name]));
   return (
     <EntityManager
       title="User Management"
       description="Create, edit, delete, search, filter, bulk select, and export users with role, branch, and department assignments."
       records={store.users}
-      onCreate={(record) => UserService.create(record)}
-      onUpdate={UserService.update}
+      onCreate={(record) => UserService.create({
+        ...record,
+        role: record.roleId === "owner" ? "Owner" : record.roleId === "admin" || record.roleId === "manager" ? "Admin" : "Staff",
+        password: record.password || "ChangeMe123",
+        lastActive: "Never",
+        companyName: store.settings.companyName,
+        companySize: record.companySize || "",
+        industry: record.industry || "",
+        branchIds: record.branchId ? [record.branchId] : [],
+        departmentIds: record.departmentId ? [record.departmentId] : []
+      })}
+      onUpdate={OrganizationService.updateUser}
       onDelete={UserService.delete}
-      permissions={{ module: "Shared Core", create: "Create Users", edit: "Edit Users", delete: "Delete Users" }}
+      permissions={{ module: "Organization", create: "Create Users", edit: "Edit Users", export: "View Users" }}
+      allowDelete={false}
       fields={[
         { key: "name", label: "Full Name" },
         { key: "email", label: "Email" },
         { key: "phone", label: "Phone" },
-        { key: "roleId", label: "Role", type: "select", options: store.roles.map((role) => role.id) },
-        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"] },
-        { key: "companyName", label: "Company" },
-        { key: "companySize", label: "Company Size" },
-        { key: "industry", label: "Industry" }
+        { key: "password", label: "Password", hideInTable: true },
+        { key: "roleId", label: "Role", type: "select", options: store.roles.filter((role) => role.status !== "Inactive").map((role) => role.id), renderValue: (value) => roleName[value] ?? value },
+        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), renderValue: (value, record) => branchName[value] ?? branchName[String((record.branchIds as string[])?.[0])] ?? value },
+        { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), renderValue: (value, record) => departmentName[value] ?? departmentName[String((record.departmentIds as string[])?.[0])] ?? value },
+        { key: "managerId", label: "Reporting Manager", type: "select", options: store.users.filter((user) => user.roleId === "manager").map((user) => user.id), renderValue: (value) => userName[value] ?? value },
+        { key: "employeeCode", label: "Employee Code" },
+        { key: "joiningDate", label: "Joining Date", type: "date" },
+        { key: "team", label: "Team" },
+        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Suspended"] }
       ]}
     />
   );
@@ -46,6 +66,7 @@ export function UserManagementScreen() {
 
 export function BranchManagementScreen() {
   const store = useLocalStore();
+  const managers = store.users.filter((user) => user.roleId === "manager" && user.status === "Active");
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
@@ -57,16 +78,19 @@ export function BranchManagementScreen() {
         title="Branch Management"
         description="Create branches, assign managers and staff, manage status, settings, and branch analytics filters."
         records={store.branches}
-        onCreate={(record) => BranchService.create({ ...record, status: "Active" })}
+        onCreate={(record) => BranchService.create({ ...record, status: "Active", city: record.location ?? "", country: "", createdAt: new Date().toISOString() })}
         onUpdate={BranchService.update}
         onDelete={BranchService.delete}
-        permissions={{ module: "Shared Core", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
+        permissions={{ module: "Organization", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
         fields={[
           { key: "name", label: "Branch Name" },
+          { key: "code", label: "Branch Code" },
           { key: "location", label: "Location" },
-          { key: "managerId", label: "Manager", type: "select", options: store.users.map((user) => user.id) },
+          { key: "managerId", label: "Assigned Manager", type: "select", options: managers.map((user) => user.id), renderValue: (value) => managers.find((user) => user.id === value)?.name ?? value },
+          { key: "phone", label: "Phone" },
+          { key: "operatingHours", label: "Operating Hours" },
           { key: "description", label: "Description", type: "textarea" },
-          { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Archived", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
+          { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Suspended", "Closed"], hideOnCreate: true, defaultOnCreate: "Active" }
         ]}
       />
     </div>
@@ -75,20 +99,23 @@ export function BranchManagementScreen() {
 
 export function DepartmentManagementScreen() {
   const store = useLocalStore();
+  const managers = store.users.filter((user) => user.roleId === "manager" && user.status === "Active");
   return (
     <EntityManager
       title="Department Management"
       description="Create departments, assign managers and users, manage visibility, and review department analytics."
       records={store.departments}
-      onCreate={(record) => DepartmentService.create({ ...record, status: "Active" })}
-      onUpdate={DepartmentService.update}
+      onCreate={(record) => OrganizationService.createDepartment({ ...record, status: "Active", createdAt: new Date().toISOString() })}
+      onUpdate={OrganizationService.updateDepartment}
       onDelete={DepartmentService.delete}
-      permissions={{ module: "Shared Core", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
+      permissions={{ module: "Organization", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
       fields={[
         { key: "name", label: "Department Name" },
-        { key: "managerId", label: "Manager", type: "select", options: store.users.map((user) => user.id) },
+        { key: "branchId", label: "Branch", type: "select", options: store.branches.map((branch) => branch.id), renderValue: (value) => store.branches.find((branch) => branch.id === value)?.name ?? value },
+        { key: "managerId", label: "Manager", type: "select", options: managers.map((user) => user.id), renderValue: (value) => managers.find((user) => user.id === value)?.name ?? value },
         { key: "description", label: "Description", type: "textarea" },
-        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Archived", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
+        { key: "memberIds", label: "Department Members", type: "multiselect", options: store.users.map((user) => user.id), renderValue: (value, record) => String((record.memberIds as string[])?.length ?? 0) },
+        { key: "status", label: "Status", type: "select", options: ["Active", "Inactive", "Suspended"], hideOnCreate: true, defaultOnCreate: "Active" }
       ]}
     />
   );

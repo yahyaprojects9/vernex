@@ -11,6 +11,7 @@ import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState({
     name: "",
@@ -24,6 +25,13 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const store = useLocalStore();
   const currentUser = AuthService.currentUser();
   const currentRole = currentUser ? store.roles.find((role) => role.id === currentUser.roleId) : null;
+  const searchResults = searchTerm.trim() ? [
+    ...store.roles.filter((item) => `${item.name} ${item.description}`.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => ({ group: "Roles", label: item.name, href: "/dashboard/roles" })),
+    ...store.users.filter((item) => `${item.name} ${item.email} ${item.phone} ${item.employeeCode ?? ""}`.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => ({ group: "Users", label: item.name, href: "/dashboard/users" })),
+    ...store.branches.filter((item) => `${item.name} ${item.location ?? ""} ${item.code ?? ""}`.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => ({ group: "Branches", label: item.name, href: "/dashboard/branches" })),
+    ...store.departments.filter((item) => `${item.name} ${item.description ?? ""}`.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => ({ group: "Departments", label: item.name, href: "/dashboard/departments" })),
+    ...store.reports.filter((item) => `${item.period} ${item.salesSummary}`.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => ({ group: "Reports", label: `${item.period} report`, href: "/dashboard/reports" }))
+  ].slice(0, 12) : [];
 
   useEffect(() => {
     if (!currentUser) return;
@@ -55,7 +63,12 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
       </Button>
       <label className="relative order-3 w-full md:order-none md:block md:max-w-3xl md:flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="bg-white pl-9" placeholder="Search leads, reports, settings" />
+        <Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="bg-white pl-9" placeholder="Search roles, users, branches, departments, reports" />
+        {searchResults.length ? <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-md border border-border bg-white p-2 shadow-soft">
+          {searchResults.map((result, index) => <button key={`${result.group}-${result.label}-${index}`} type="button" className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setSearchTerm(""); router.push(result.href); }}>
+            <span>{result.label}</span><span className="text-xs text-muted-foreground">{result.group}</span>
+          </button>)}
+        </div> : null}
       </label>
       <div className="ml-auto flex min-w-0 items-center gap-2">
         <Button variant="ghost" className="h-10 w-10 px-0" aria-label="Notifications">

@@ -1,0 +1,8 @@
+{
+  "heading": "Branding",
+  "subheading": "Identity",
+  "fields": [
+    { "slug": "companyLogo", "label": "Company Logo", "description": "Used in navigation and reports.", "control": "image", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "primaryColor", "label": "Primary Color", "description": "Primary brand accent.", "control": "color", "defaultValue": "#0f766e", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] }
+  ]
+}

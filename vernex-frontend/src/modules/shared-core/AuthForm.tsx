@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { ErrorState } from "@/components/ui/StateViews";
 import departmentsConfig from "@/config/departments.json";
 import branchesConfig from "@/config/branches.json";
 import { AuthService } from "@/lib/services";
+import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 
 const departmentOptions = departmentsConfig as { id: string; name: string }[];
 const branchOptions = branchesConfig as { id: string; name: string }[];
@@ -59,6 +61,8 @@ const roleToLegacyDisplayRole = (roleId: string) => {
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
+  const store = useLocalStore();
+  const companyName = store.settings.companyName || store.settings.brandName;
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const {
@@ -127,7 +131,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   return (
     <form onSubmit={onSubmit} className="dashboard-surface w-full max-w-md space-y-4 p-6">
       <div>
-        <h1 className="text-2xl font-bold">{mode === "login" ? "Login to Vernex" : "Create Vernex account"}</h1>
+        <div className="mb-3 flex items-center gap-3">
+          {store.settings.companyLogo ? <Image src={store.settings.companyLogo} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded-md object-cover" /> : null}
+          <h1 className="text-2xl font-bold">{mode === "login" ? `Login to ${companyName}` : `Create ${companyName} account`}</h1>
+        </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Role-aware local authentication. Sign up first to create the first account.
         </p>

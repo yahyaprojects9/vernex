@@ -33,12 +33,12 @@ export function DashboardGuard({ children }: { children: React.ReactNode }) {
 
 function canAccessPath(pathname: string) {
   if (pathname === "/dashboard") return true;
-  if (pathname.startsWith("/dashboard/users")) return AuthService.hasPermission("Shared Core", "View Users");
-  if (pathname.startsWith("/dashboard/roles")) return AuthService.hasPermission("Shared Core", "View Roles");
-  if (pathname.startsWith("/dashboard/branches")) return AuthService.hasPermission("Shared Core", "View Branches");
-  if (pathname.startsWith("/dashboard/departments")) return AuthService.hasPermission("Shared Core", "View Departments");
-  if (pathname.startsWith("/dashboard/settings")) return AuthService.currentRole()?.id === "owner";
-  if (pathname.startsWith("/dashboard/reports")) return AuthService.hasPermission("Profit Analysis", "View Analytics") || AuthService.hasPermission("Profit Analysis", "Export Reports");
+  if (pathname.startsWith("/dashboard/users")) return AuthService.can("read", "User");
+  if (pathname.startsWith("/dashboard/roles")) return AuthService.can("read", "Role");
+  if (pathname.startsWith("/dashboard/branches")) return AuthService.can("read", "Branch");
+  if (pathname.startsWith("/dashboard/departments")) return AuthService.can("read", "Department");
+  if (pathname.startsWith("/dashboard/settings")) return AuthService.can("read", "Settings") || AuthService.currentRole()?.id === "owner";
+  if (pathname.startsWith("/dashboard/reports")) return AuthService.can("read", "Report") || AuthService.hasPermission("Profit Analysis", "Export Reports");
   if (pathname.startsWith("/dashboard/sales-agent")) return AuthService.canViewModule("Sales Agent");
   if (pathname.startsWith("/dashboard/profit-analysis")) return AuthService.canViewModule("Profit Analysis");
   return true;

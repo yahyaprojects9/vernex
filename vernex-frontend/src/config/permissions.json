@@ -1,6 +1,6 @@
 [
   {
-    "module": "Shared Core",
+    "module": "Organization",
     "permissions": ["View Users", "Create Users", "Edit Users", "Delete Users", "View Roles", "Create Roles", "Edit Roles", "Delete Roles", "Configure Permissions", "View Branches", "Edit Branches", "View Departments", "Edit Departments"]
   },
   {

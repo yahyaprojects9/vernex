@@ -1,0 +1,11 @@
+{
+  "heading": "Business",
+  "subheading": "Regional and Financial",
+  "fields": [
+    { "slug": "workingHours", "label": "Working Hours", "description": "Default operating hours.", "control": "text", "defaultValue": "10:00 AM - 11:00 PM", "editableRoles": ["owner", "manager"], "visibleRoles": ["owner", "manager", "admin", "staff"] },
+    { "slug": "timezone", "label": "Timezone", "description": "Company reporting timezone.", "control": "dropdown", "options": ["Asia/Calcutta", "UTC", "Asia/Dubai"], "defaultValue": "Asia/Calcutta", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "currency", "label": "Currency", "description": "Default financial currency.", "control": "dropdown", "options": ["INR", "USD", "AED"], "defaultValue": "INR", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "financialYear", "label": "Financial Year", "description": "Financial year convention.", "control": "dropdown", "options": ["April-March", "January-December"], "defaultValue": "April-March", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "dateFormat", "label": "Date Format", "description": "Date display format.", "control": "dropdown", "options": ["dd-MM-yyyy", "MM-dd-yyyy", "yyyy-MM-dd"], "defaultValue": "dd-MM-yyyy", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] }
+  ]
+}

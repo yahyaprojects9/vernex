@@ -110,11 +110,11 @@ const management = read("src/modules/shared-core/ManagementScreens.tsx");
 assertIncludes(
   management,
   [
-    'BranchService.create({ ...record, status: "Active" })',
-    'DepartmentService.create({ ...record, status: "Active" })',
+    'BranchService.create({ ...record, status: "Active"',
+    'OrganizationService.createDepartment({ ...record, status: "Active"',
     'hideOnCreate: true',
     'defaultOnCreate: "Active"',
-    'options: ["Active", "Inactive", "Archived", "Suspended"]'
+    'options: ["Active", "Inactive", "Suspended", "Closed"]'
   ],
   "Management screens"
 );
@@ -156,7 +156,7 @@ assertIncludes(
 );
 
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
-assertIncludes(roles, ["Select all", "toggleAllPermissions"], "Role management");
+assertIncludes(roles, ["Module Select All", "togglePermission", "PermissionMatrix"], "Role management");
 
 const chart = read("src/components/charts/ChartCard.tsx");
 assertIncludes(chart, ["dynamic", "no data available"], "Chart card");
@@ -205,8 +205,8 @@ assertIncludes(profitReports, ["From date", "To date", "Download Report", "downl
 const managementScreens = read("src/modules/shared-core/ManagementScreens.tsx");
 assertIncludes(managementScreens, ["No response after first contact", "Quotation sent but not accepted", "assignedUserId: record.assignedStaff"], "Automation and handoff");
 
-await route("/login", ["Login to Vernex", "Mock login IDs"]);
-await route("/register", ["Create Vernex account", "Company Name"]);
+await route("/login", ["Login to Vernex Platform", "Mock login IDs"]);
+await route("/register", ["Create Vernex Platform account", "Company Name"]);
 await route("/forgot-password", ["Reset password"]);
 await route("/dashboard/reports", ["Reports"]);
 await route("/dashboard/sales-agent/ai-auto-reply", ["AI Auto Reply"]);

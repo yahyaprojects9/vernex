@@ -1,6 +1,10 @@
 import permissionsConfig from "@/config/permissions.json";
 import rolesConfig from "@/config/roles.json";
 import settingsConfig from "@/config/settings.json";
+import { localStorageAdapter } from "@/adapters/storage/LocalStorageAdapter";
+import { defineAbilityFor, type AbilityAction, type AbilitySubject } from "@/casl/ability";
+import { createCollectionRepository } from "@/repositories/createCollectionRepository";
+import { useSessionStore } from "@/stores/sessionStore";
 import type {
   Conversation,
   CostTracking,
@@ -25,6 +29,10 @@ export type Branch = {
   description?: string;
   city: string;
   country: string;
+  code?: string;
+  phone?: string;
+  operatingHours?: string;
+  createdAt?: string;
 };
 
 export type Department = {
@@ -33,6 +41,9 @@ export type Department = {
   managerId: string;
   status: string;
   description?: string;
+  branchId?: string;
+  memberIds?: string[];
+  createdAt?: string;
 };
 
 export type RoleRecord = {
@@ -45,6 +56,10 @@ export type RoleRecord = {
   globalVisibility: boolean;
   readOnly?: boolean;
   permissions?: Record<string, string[]>;
+  displayOrder?: number;
+  status?: "Active" | "Inactive";
+  createdAt?: string;
+  protected?: boolean;
 };
 
 export type ImportRecord = {
@@ -72,9 +87,14 @@ export type StoredUser = User & {
   managerId?: string;
   branchIds: string[];
   departmentIds: string[];
+  avatar?: string;
+  employeeCode?: string;
+  joiningDate?: string;
+  branchId?: string;
+  departmentId?: string;
 };
 
-type StoreShape = {
+export type StoreShape = {
   schemaVersion: number;
   users: StoredUser[];
   roles: RoleRecord[];
@@ -108,7 +128,7 @@ const ownerPermissions = Object.fromEntries(
 
 const defaultRolePermissions: Record<string, Record<string, string[]>> = {
   manager: {
-    "Shared Core": ["View Users", "View Branches", "View Departments"],
+    "Organization": ["View Users", "View Branches", "View Departments"],
     "Sales Agent": ["View"],
     "Profit Analysis": ["View", "View Analytics"]
   },
@@ -708,6 +728,10 @@ const initialStore: StoreShape = {
   users: [...mockUsers, ...demoUsers],
   roles: (rolesConfig as RoleRecord[]).map((role) => ({
     ...role,
+    displayOrder: 100 - role.level,
+    status: "Active",
+    createdAt: "2026-06-01",
+    protected: role.id === "owner" || role.id === "admin",
     permissions:
       role.id === "owner"
         ? ownerPermissions
@@ -755,7 +779,18 @@ function withRuntimeDefaults(store: StoreShape): StoreShape {
       managerId: user.managerId ?? seeded.managerId
     };
   });
-  next.roles = next.roles.map((role) => {
+  next.roles = next.roles.map((role, index) => {
+    const legacyOrganizationPermissions = role.permissions?.["Shared Core"];
+    role = {
+      ...role,
+      displayOrder: role.displayOrder ?? index + 1,
+      status: role.status ?? "Active",
+      createdAt: role.createdAt ?? "2026-06-01",
+      protected: role.protected ?? (role.id === "owner" || role.id === "admin"),
+      permissions: legacyOrganizationPermissions
+        ? { ...role.permissions, Organization: legacyOrganizationPermissions, "Shared Core": undefined as never }
+        : role.permissions
+    };
     if (role.id === "owner") return { ...role, permissions: role.permissions && Object.keys(role.permissions).length ? role.permissions : ownerPermissions };
     if (role.id === "admin") {
       return {
@@ -772,7 +807,19 @@ function withRuntimeDefaults(store: StoreShape): StoreShape {
     };
   });
   next.branches = appendMissingById(next.branches, demoBranches);
-  next.departments = appendMissingById(next.departments, demoDepartments);
+  next.branches = next.branches.map((branch, index) => ({
+    ...branch,
+    code: branch.code ?? `BR-${String(index + 1).padStart(3, "0")}`,
+    phone: branch.phone ?? "",
+    operatingHours: branch.operatingHours ?? next.settings.workingHours,
+    createdAt: branch.createdAt ?? "2026-06-01"
+  }));
+  next.departments = appendMissingById(next.departments, demoDepartments).map((department) => ({
+    ...department,
+    branchId: department.branchId ?? next.branches.find((branch) => branch.managerId === department.managerId)?.id ?? next.branches[0]?.id,
+    memberIds: department.memberIds ?? next.users.filter((user) => user.departmentIds.includes(department.id)).map((user) => user.id),
+    createdAt: department.createdAt ?? "2026-06-01"
+  }));
   next.leads = appendMissingById(next.leads, demoLeads);
   next.quotations = appendMissingById(next.quotations, demoQuotations);
   next.conversations = appendMissingById(next.conversations, demoConversations);
@@ -791,20 +838,20 @@ export class StorageService {
   static read(): StoreShape {
     if (typeof window === "undefined") return clone(initialStore);
     if (cachedStore) return cachedStore;
-    const stored = window.localStorage.getItem(key);
+    const stored = localStorageAdapter.get<Partial<StoreShape>>(key);
     if (!stored) {
       const fallback = withRuntimeDefaults(initialStore);
       this.write(fallback);
       return fallback;
     }
-    const parsed = JSON.parse(stored) as Partial<StoreShape>;
+    const parsed = stored;
     if (parsed.schemaVersion !== schemaVersion) {
       const fallback = withRuntimeDefaults({ ...clone(initialStore), ...parsed, schemaVersion } as StoreShape);
       this.write(fallback);
       return fallback;
     }
     cachedStore = withRuntimeDefaults({ ...clone(initialStore), ...parsed } as StoreShape);
-    window.localStorage.setItem(key, JSON.stringify(cachedStore));
+    localStorageAdapter.set(key, cachedStore);
     return cachedStore;
   }
 
@@ -813,7 +860,7 @@ export class StorageService {
     cachedStore = data;
     storeRevision += 1;
     visibleStoreCache = null;
-    window.localStorage.setItem(key, JSON.stringify(data));
+    localStorageAdapter.set(key, data);
     window.dispatchEvent(new CustomEvent("vernex-store-change"));
   }
 
@@ -823,27 +870,12 @@ export class StorageService {
 }
 
 function collectionService<K extends keyof StoreShape>(collection: K) {
-  return {
-    list: () => StorageService.read()[collection] as StoreShape[K],
-    create: (record: StoreShape[K] extends Array<infer R> ? R : never) => {
-      const store = StorageService.read();
-      (store[collection] as unknown[]).unshift(record);
-      StorageService.write(store);
-      return record;
-    },
-    update: (id: string, patch: Record<string, unknown>) => {
-      const store = StorageService.read();
-      store[collection] = (store[collection] as unknown[]).map((record) =>
-        (record as { id?: string }).id === id ? { ...(record as object), ...patch } : record
-      ) as StoreShape[K];
-      StorageService.write(store);
-    },
-    delete: (id: string) => {
-      const store = StorageService.read();
-      store[collection] = (store[collection] as unknown[]).filter((record) => (record as { id?: string }).id !== id) as StoreShape[K];
-      StorageService.write(store);
-    }
-  };
+  type RecordType = StoreShape[K] extends Array<infer R extends { id: string }> ? R : never;
+  return createCollectionRepository<StoreShape, K, RecordType>(
+    collection,
+    () => StorageService.read(),
+    (store) => StorageService.write(store)
+  );
 }
 
 export class AuthService {
@@ -862,6 +894,13 @@ export class AuthService {
     if (roleId && user.roleId !== roleId) throw new Error(`This account is registered as ${user.roleId}, not ${roleId}.`);
     store.currentUserId = user.id;
     StorageService.write(store);
+    useSessionStore.getState().setSession({
+      userId: user.id,
+      roleId: user.roleId,
+      companyId: user.companyName,
+      branchIds: user.branchIds,
+      departmentIds: user.departmentIds
+    });
     return user;
   }
 
@@ -873,6 +912,13 @@ export class AuthService {
     store.users.unshift(user);
     store.currentUserId = user.id;
     StorageService.write(store);
+    useSessionStore.getState().setSession({
+      userId: user.id,
+      roleId: user.roleId,
+      companyId: user.companyName,
+      branchIds: user.branchIds,
+      departmentIds: user.departmentIds
+    });
     return user;
   }
 
@@ -884,6 +930,7 @@ export class AuthService {
     const store = StorageService.read();
     store.currentUserId = null;
     StorageService.write(store);
+    useSessionStore.getState().setSession(null);
   }
 
   static currentRole() {
@@ -905,6 +952,13 @@ export class AuthService {
     if (!role || role.readOnly) return false;
     if (!module || !permission) return role.id === "owner";
     return this.hasPermission(module, permission);
+  }
+
+  static can(action: AbilityAction, subject: AbilitySubject) {
+    const store = StorageService.read();
+    const user = this.currentUser(store);
+    const role = user ? store.roles.find((item) => item.id === user.roleId) ?? null : null;
+    return defineAbilityFor(user, role).can(action, subject);
   }
 
   static canViewModule(module: string) {
@@ -947,6 +1001,42 @@ export const PermissionService = {
 export const UserService = collectionService("users");
 export const BranchService = collectionService("branches");
 export const DepartmentService = collectionService("departments");
+export const OrganizationService = {
+  updateUser: (id: string, patch: Partial<StoredUser>) => {
+    const normalized = {
+      ...patch,
+      branchIds: patch.branchId ? [patch.branchId] : patch.branchIds,
+      departmentIds: patch.departmentId ? [patch.departmentId] : patch.departmentIds
+    };
+    UserService.update(id, normalized);
+  },
+  createDepartment: (record: Department) => {
+    DepartmentService.create(record);
+    const store = StorageService.read();
+    const memberIds = new Set(record.memberIds ?? []);
+    store.users = store.users.map((user) => ({
+      ...user,
+      departmentIds: memberIds.has(user.id)
+        ? Array.from(new Set([...user.departmentIds, record.id]))
+        : user.departmentIds
+    }));
+    StorageService.write(store);
+    return record;
+  },
+  updateDepartment: (id: string, patch: Partial<Department>) => {
+    DepartmentService.update(id, patch);
+    if (!patch.memberIds) return;
+    const memberIds = new Set(patch.memberIds);
+    const store = StorageService.read();
+    store.users = store.users.map((user) => ({
+      ...user,
+      departmentIds: memberIds.has(user.id)
+        ? Array.from(new Set([...user.departmentIds, id]))
+        : user.departmentIds.filter((departmentId) => departmentId !== id)
+    }));
+    StorageService.write(store);
+  }
+};
 export const LeadService = collectionService("leads");
 export const ConversationService = collectionService("conversations");
 export const QuotationService = collectionService("quotations");

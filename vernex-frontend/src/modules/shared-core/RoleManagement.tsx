@@ -1,156 +1,232 @@
 "use client";
 
-import { useState } from "react";
-import { GitBranch, ShieldCheck, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import permissionsConfig from "@/config/permissions.json";
-import { StatCard } from "@/components/cards/StatCard";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/Input";
-import { AuthService, RolePermissionService, RoleService, StorageService } from "@/lib/services";
+import { Input, Select, Textarea } from "@/components/ui/Input";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
+
+type RoleDraft = {
+  name: string;
+  description: string;
+  displayOrder: string;
+  status: "Active" | "Inactive";
+  permissions: Record<string, string[]>;
+};
+
+const emptyDraft = (): RoleDraft => ({
+  name: "",
+  description: "",
+  displayOrder: "10",
+  status: "Active",
+  permissions: {}
+});
 
 export function RoleManagement() {
   const store = useLocalStore();
-  const [activeRoleId, setActiveRoleId] = useState(store.roles[0]?.id ?? "owner");
-  const [savedAt, setSavedAt] = useState("");
-  const activeRole = store.roles.find((role) => role.id === activeRoleId) ?? store.roles[0];
-  const [newRole, setNewRole] = useState({ name: "", description: "" });
-  const canConfigurePermissions = AuthService.hasPermission("Shared Core", "Configure Permissions");
-  const canCreateRoles = AuthService.hasPermission("Shared Core", "Create Roles");
+  const [draft, setDraft] = useState<RoleDraft | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string[]>(["owner"]);
+  const canCreate = AuthService.can("create", "Role");
+  const canEdit = AuthService.can("update", "Role") || AuthService.can("manage", "Role");
+  const canDelete = AuthService.can("delete", "Role");
+  const sortedRoles = useMemo(
+    () => [...store.roles].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
+    [store.roles]
+  );
+  const viewingRole = store.roles.find((role) => role.id === viewingId);
+
+  function editRole(role: RoleRecord) {
+    setEditingId(role.id);
+    setViewingId(null);
+    setDraft({
+      name: role.name,
+      description: role.description,
+      displayOrder: String(role.displayOrder ?? 0),
+      status: role.status ?? "Active",
+      permissions: role.permissions ?? {}
+    });
+  }
 
   function togglePermission(module: string, permission: string) {
-    if (!activeRole || activeRole.id === "admin" || !canConfigurePermissions) return;
-    const current = activeRole.permissions?.[module] ?? [];
-    const next = current.includes(permission) ? current.filter((item) => item !== permission) : [...current, permission];
-    RolePermissionService.updatePermissions(activeRole.id, module, next);
-    setSavedAt(new Date().toLocaleTimeString());
-  }
-
-  function toggleAllPermissions(module: string, permissions: string[]) {
-    if (!activeRole || activeRole.id === "admin" || !canConfigurePermissions) return;
-    const current = activeRole.permissions?.[module] ?? [];
-    const allSelected = permissions.every((permission) => current.includes(permission));
-    RolePermissionService.updatePermissions(activeRole.id, module, allSelected ? [] : permissions);
-    setSavedAt(new Date().toLocaleTimeString());
-  }
-
-  function createRole() {
-    if (!newRole.name.trim() || !canCreateRoles) return;
-    RoleService.create({
-      id: `role-${Date.now()}`,
-      name: newRole.name,
-      description: newRole.description,
-      level: 25,
-      canModifyPermissions: false,
-      canModifyHierarchy: false,
-      globalVisibility: false,
-      permissions: {}
+    if (!draft) return;
+    const current = draft.permissions[module] ?? [];
+    setDraft({
+      ...draft,
+      permissions: {
+        ...draft.permissions,
+        [module]: current.includes(permission)
+          ? current.filter((item) => item !== permission)
+          : [...current, permission]
+      }
     });
-    setNewRole({ name: "", description: "" });
+  }
+
+  function setModule(module: string, permissions: string[]) {
+    if (!draft) return;
+    const current = draft.permissions[module] ?? [];
+    const allSelected = permissions.every((permission) => current.includes(permission));
+    setDraft({ ...draft, permissions: { ...draft.permissions, [module]: allSelected ? [] : permissions } });
+  }
+
+  function saveRole() {
+    if (!draft?.name.trim()) return;
+    if (editingId) {
+      RoleService.update(editingId, {
+        name: draft.name,
+        description: draft.description,
+        displayOrder: Number(draft.displayOrder),
+        status: draft.status
+      });
+      Object.entries(draft.permissions).forEach(([module, permissions]) =>
+        RolePermissionService.updatePermissions(editingId, module, permissions)
+      );
+    } else {
+      RoleService.create({
+        id: `role-${Date.now()}`,
+        name: draft.name,
+        description: draft.description,
+        level: 25,
+        displayOrder: Number(draft.displayOrder),
+        status: draft.status,
+        createdAt: new Date().toISOString(),
+        protected: false,
+        canModifyPermissions: false,
+        canModifyHierarchy: false,
+        globalVisibility: false,
+        permissions: draft.permissions
+      });
+    }
+    setDraft(null);
+    setEditingId(null);
+  }
+
+  function deleteRole(role: RoleRecord) {
+    const activeMembers = store.users.filter((user) => user.roleId === role.id && user.status === "Active");
+    if (role.protected || role.id === "owner" || activeMembers.length) return;
+    if (window.confirm(`Delete role "${role.name}"?`)) RoleService.delete(role.id);
   }
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Roles" value={String(store.roles.length)} helper="System and custom roles" icon={ShieldCheck} />
-        <StatCard label="Assigned Users" value={String(store.users.length)} helper="Hierarchy-aware" icon={Users} />
-        <StatCard label="Branches" value={String(store.branches.length)} helper="Visibility scopes" icon={GitBranch} />
+      <div className="dashboard-surface flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="text-lg font-semibold">Organization Roles</h2>
+          <p className="text-sm text-muted-foreground">Reusable roles, permissions, members, and hierarchy.</p>
+        </div>
+        <Button onClick={() => { setEditingId(null); setViewingId(null); setDraft(emptyDraft()); }} disabled={!canCreate}>
+          <Plus className="h-4 w-4" /> Add Role
+        </Button>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        <section className="dashboard-surface p-4">
-          <h2 className="font-semibold">Role List</h2>
-          <div className="mt-4 space-y-2">
-            {store.roles.map((role) => (
-              <button
-                key={role.id}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium ${activeRoleId === role.id ? "bg-primary text-primary-foreground" : "bg-muted/60 hover:bg-muted"}`}
-                onClick={() => setActiveRoleId(role.id)}
-              >
-                {role.name}
-              </button>
-            ))}
-          </div>
-          <div className="mt-5 space-y-3 border-t border-border pt-4">
-            <Input placeholder="New role name" value={newRole.name} disabled={!canCreateRoles} onChange={(event) => setNewRole({ ...newRole, name: event.target.value })} />
-            <Textarea placeholder="Role description" value={newRole.description} disabled={!canCreateRoles} onChange={(event) => setNewRole({ ...newRole, description: event.target.value })} />
-            <Button onClick={createRole} disabled={!canCreateRoles}>Create Role</Button>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="dashboard-surface p-5">
-            <h2 className="text-lg font-semibold">Role Details</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{activeRole?.description}</p>
-            {activeRole?.id === "admin" ? (
-              <p className="mt-3 rounded-md bg-warning/15 p-3 text-sm font-medium text-amber-800">
-                Admin is global read-only. It can view all data but cannot modify permissions, hierarchy, or assignments.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="dashboard-surface p-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">Permission Matrix</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Changes save immediately for the selected role and apply on the next navigation/login.
-                </p>
-              </div>
-              {savedAt ? <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Saved {savedAt}</span> : null}
-            </div>
-            <div className="mt-4 space-y-5">
-              {permissionsConfig.map((group) => (
-                <div key={group.module} className="rounded-md border border-border p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="font-semibold">{group.module}</h3>
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(activeRole && group.permissions.every((permission) => activeRole.permissions?.[group.module]?.includes(permission)))}
-                        disabled={activeRole?.id === "admin" || !canConfigurePermissions}
-                        onChange={() => toggleAllPermissions(group.module, group.permissions)}
-                        className="h-4 w-4 accent-teal-700"
-                      />
-                      Select all
-                    </label>
-                  </div>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                    {group.permissions.map((permission) => (
-                      <label key={permission} className="flex items-center gap-2 rounded-md bg-muted/60 p-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(activeRole?.permissions?.[group.module]?.includes(permission))}
-                          disabled={activeRole?.id === "admin" || !canConfigurePermissions}
-                          onChange={() => togglePermission(group.module, permission)}
-                          className="h-4 w-4 accent-teal-700"
-                        />
-                        {permission}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="dashboard-surface p-5">
-            <h2 className="text-lg font-semibold">Hierarchy Tree</h2>
-            <div className="mt-4 rounded-md bg-muted p-4 text-sm">
-              <p className="font-semibold">Owner</p>
-              {store.users.filter((user) => user.roleId === "manager").map((manager) => (
-                <div key={manager.id} className="ml-5 mt-3 border-l border-border pl-4">
-                  <p className="font-semibold">{manager.name} - Manager</p>
-                  {store.users.filter((user) => user.managerId === manager.id).map((user) => (
-                    <p key={user.id} className="ml-4 mt-1 text-muted-foreground">{user.name} - {user.roleId}</p>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <Button variant="secondary" className="mt-4" onClick={() => StorageService.reset()}>Reset All Data</Button>
-          </div>
-        </section>
+      <div className="dashboard-surface overflow-x-auto">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <thead className="bg-muted text-xs uppercase text-muted-foreground">
+            <tr>{["S.No", "Role Name", "Description", "Members", "Status", "Created", "Actions"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sortedRoles.map((role, index) => {
+              const members = store.users.filter((user) => user.roleId === role.id);
+              const deletionBlocked = role.protected || role.id === "owner" || members.some((user) => user.status === "Active");
+              return (
+                <tr key={role.id}>
+                  <td className="px-4 py-3">{index + 1}</td>
+                  <td className="px-4 py-3 font-semibold">{role.name}</td>
+                  <td className="max-w-sm px-4 py-3 text-muted-foreground">{role.description}</td>
+                  <td className="px-4 py-3">{members.length}</td>
+                  <td className="px-4 py-3"><StatusBadge tone={role.status === "Inactive" ? "neutral" : "success"}>{role.status ?? "Active"}</StatusBadge></td>
+                  <td className="px-4 py-3">{role.createdAt ? new Date(role.createdAt).toLocaleDateString() : "-"}</td>
+                  <td className="px-4 py-3"><div className="flex gap-2">
+                    <Button variant="secondary" className="h-9 w-9 px-0" aria-label="View role" onClick={() => { setViewingId(role.id); setDraft(null); }}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="secondary" className="h-9 w-9 px-0" aria-label="Edit role" disabled={!canEdit || role.id === "admin"} onClick={() => editRole(role)}><Edit className="h-4 w-4" /></Button>
+                    <Button variant="danger" className="h-9 w-9 px-0" aria-label="Delete role" title={deletionBlocked ? "Protected roles and roles with active users cannot be deleted" : "Delete role"} disabled={!canDelete || deletionBlocked} onClick={() => deleteRole(role)}><Trash2 className="h-4 w-4" /></Button>
+                  </div></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+
+      {draft ? (
+        <section className="dashboard-surface space-y-5 p-5">
+          <h2 className="text-lg font-semibold">{editingId ? "Edit Role" : "Create Role"}</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input placeholder="Role name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+            <Input type="number" placeholder="Display order" value={draft.displayOrder} onChange={(event) => setDraft({ ...draft, displayOrder: event.target.value })} />
+            <Textarea className="md:col-span-2" placeholder="Description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+            <Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select>
+          </div>
+          <PermissionMatrix permissions={draft.permissions} editable onToggle={togglePermission} onToggleModule={setModule} />
+          <div className="flex justify-center gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => setDraft(null)}>Cancel</Button></div>
+        </section>
+      ) : null}
+
+      {viewingRole ? (
+        <section className="dashboard-surface space-y-5 p-5">
+          <div><h2 className="text-lg font-semibold">{viewingRole.name}</h2><p className="text-sm text-muted-foreground">{viewingRole.description}</p></div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Info label="Hierarchy Level" value={String(viewingRole.level)} />
+            <Info label="Assigned Users" value={String(store.users.filter((user) => user.roleId === viewingRole.id).length)} />
+            <Info label="Accessible Modules" value={String(Object.values(viewingRole.permissions ?? {}).filter((items) => items.length).length)} />
+          </div>
+          <PermissionMatrix permissions={viewingRole.permissions ?? {}} />
+        </section>
+      ) : null}
+
+      <section className="dashboard-surface p-5">
+        <h2 className="text-lg font-semibold">Organization Hierarchy</h2>
+        <div className="mt-4 space-y-2">
+          {store.users.filter((user) => user.roleId === "owner").map((owner) => (
+            <HierarchyNode key={owner.id} userId={owner.id} depth={0} expanded={expanded} setExpanded={setExpanded} />
+          ))}
+        </div>
+      </section>
     </div>
   );
+}
+
+function PermissionMatrix({ permissions, editable = false, onToggle, onToggleModule }: {
+  permissions: Record<string, string[]>;
+  editable?: boolean;
+  onToggle?: (module: string, permission: string) => void;
+  onToggleModule?: (module: string, permissions: string[]) => void;
+}) {
+  return <div className="space-y-3">{permissionsConfig.map((group) => (
+    <div key={group.module} className="rounded-md border border-border p-4">
+      <div className="flex items-center justify-between"><h3 className="font-semibold">{group.module}</h3>{editable ? <Button variant="secondary" onClick={() => onToggleModule?.(group.module, group.permissions)}>Module Select All</Button> : null}</div>
+      <div className="mt-3 grid gap-2 md:grid-cols-3">{group.permissions.map((permission) => (
+        <label key={permission} className="flex items-center gap-2 rounded-md bg-muted/60 p-2 text-sm">
+          <input type="checkbox" checked={permissions[group.module]?.includes(permission) ?? false} disabled={!editable} onChange={() => onToggle?.(group.module, permission)} />{permission}
+        </label>
+      ))}</div>
+    </div>
+  ))}</div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-md bg-muted p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>;
+}
+
+function HierarchyNode({ userId, depth, expanded, setExpanded }: { userId: string; depth: number; expanded: string[]; setExpanded: (ids: string[]) => void }) {
+  const store = useLocalStore();
+  const user = store.users.find((item) => item.id === userId);
+  if (!user) return null;
+  const children = store.users.filter((item) => item.managerId === user.id || item.reportingManager === user.id);
+  const isOpen = expanded.includes(user.id);
+  const role = store.roles.find((item) => item.id === user.roleId)?.name ?? user.roleId;
+  const branch = store.branches.find((item) => user.branchIds.includes(item.id))?.name ?? "Unassigned";
+  const department = store.departments.find((item) => user.departmentIds.includes(item.id))?.name ?? "Unassigned";
+  return <div style={{ marginLeft: depth * 20 }}>
+    <button className="flex w-full items-center gap-3 rounded-md border border-border p-3 text-left hover:bg-muted" onClick={() => setExpanded(isOpen ? expanded.filter((id) => id !== user.id) : [...expanded, user.id])}>
+      {children.length ? isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> : <span className="w-4" />}
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground">{user.name.charAt(0)}</span>
+      <span><span className="block font-semibold">{user.name} - {role}</span><span className="block text-xs text-muted-foreground">{department} | {branch}</span></span>
+    </button>
+    {isOpen ? children.map((child) => <HierarchyNode key={child.id} userId={child.id} depth={depth + 1} expanded={expanded} setExpanded={setExpanded} />) : null}
+  </div>;
 }

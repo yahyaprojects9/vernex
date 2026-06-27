@@ -1,5 +1,5 @@
 export type UserRole = "Owner" | "Admin" | "Staff";
-export type UserStatus = "Active" | "Inactive";
+export type UserStatus = "Active" | "Inactive" | "Suspended";
 
 export type User = {
   id: string;

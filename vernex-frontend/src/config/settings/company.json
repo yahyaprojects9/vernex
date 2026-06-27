@@ -1,0 +1,14 @@
+{
+  "heading": "Company",
+  "subheading": "General Information",
+  "fields": [
+    { "slug": "companyName", "label": "Company Name", "description": "Displayed throughout the application.", "control": "text", "placeholder": "Company name", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "companyRegistrationNumber", "label": "Registration Number", "description": "Official company registration identifier.", "control": "text", "placeholder": "Registration number", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "admin"] },
+    { "slug": "supportEmail", "label": "Company Email", "description": "Primary business contact email.", "control": "email", "placeholder": "company@example.com", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "companyPhone", "label": "Company Phone", "description": "Primary business contact number.", "control": "phone", "placeholder": "Phone", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "industry", "label": "Industry", "description": "Primary business industry.", "control": "text", "placeholder": "Industry", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "companySize", "label": "Company Size", "description": "Current employee range.", "control": "dropdown", "defaultValue": "", "options": ["1-10", "11-50", "51-200", "201-500", "500+"], "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "website", "label": "Website", "description": "Public company website.", "control": "url", "placeholder": "https://", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] },
+    { "slug": "address", "label": "Address", "description": "Registered company address.", "control": "textarea", "placeholder": "Company address", "defaultValue": "", "editableRoles": ["owner"], "visibleRoles": ["owner", "manager", "admin"] }
+  ]
+}

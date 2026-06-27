@@ -4,7 +4,7 @@ import { DepartmentManagementScreen } from "@/modules/shared-core/ManagementScre
 export default function DepartmentsPage() {
   return (
     <>
-      <PageHeader title="Department Management" description="Create departments, assign managers and users, configure visibility, and review department analytics." breadcrumbs={["Shared Core", "Department Management"]} />
+      <PageHeader title="Department Management" description="Create departments, assign managers and users, configure visibility, and review department analytics." breadcrumbs={["Organization", "Department Management"]} />
       <DepartmentManagementScreen />
     </>
   );
