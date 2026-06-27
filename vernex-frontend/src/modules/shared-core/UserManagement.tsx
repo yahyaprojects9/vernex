@@ -249,14 +249,14 @@ export function UserManagementScreen() {
       </div>
 
       <div className="dashboard-surface overflow-visible">
-        <div className="hidden grid-cols-[minmax(260px,1.4fr)_minmax(280px,1fr)_130px_130px_48px] gap-4 bg-muted/70 px-5 py-3 text-xs font-semibold uppercase text-muted-foreground md:grid">
+        <div className="hidden grid-cols-[minmax(240px,1.25fr)_minmax(270px,1fr)_120px_120px_44px] gap-4 bg-muted/70 px-5 py-3 text-xs font-semibold uppercase text-muted-foreground xl:grid">
           <span>User</span><span>Access</span><span>Last active</span><span>Date added</span><span />
         </div>
         <div className="divide-y divide-border">
           {visible.map((user) => {
             const branchId = user.branchId ?? user.branchIds[0];
             const departmentId = user.departmentId ?? user.departmentIds[0];
-            return <article key={user.id} className="relative grid gap-3 py-4 pl-4 pr-14 hover:bg-muted/30 md:grid-cols-[minmax(260px,1.4fr)_minmax(280px,1fr)_130px_130px_48px] md:items-center md:px-5">
+            return <article key={user.id} className="relative grid gap-3 py-4 pl-4 pr-14 hover:bg-muted/30 xl:grid-cols-[minmax(240px,1.25fr)_minmax(270px,1fr)_120px_120px_44px] xl:items-center xl:px-5">
               <div className="flex min-w-0 items-center gap-3">
                 {user.avatar ? <Image src={user.avatar} alt="" width={44} height={44} unoptimized className="aspect-square h-11 w-11 shrink-0 rounded-full border border-border object-cover" /> : <span className="grid aspect-square h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">{user.name.charAt(0)}</span>}
                 <div className="min-w-0"><h3 className="truncate font-semibold">{user.name}</h3><p className="truncate text-sm text-muted-foreground">{user.email}</p></div>
@@ -266,9 +266,9 @@ export function UserManagementScreen() {
                 {branchId ? <AccessBadge tone="branch">{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
                 {departmentId ? <AccessBadge tone="department">{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
               </div>
-              <div className="text-sm"><span className="mr-2 text-xs text-muted-foreground md:hidden">Last active</span>{user.lastActive || "-"}</div>
-              <div className="text-sm"><span className="mr-2 text-xs text-muted-foreground md:hidden">Date added</span>{user.joiningDate || "-"}</div>
-              <div className="absolute right-3 top-4 md:static md:justify-self-end">
+              <div className="text-sm"><span className="mr-2 text-xs font-medium text-muted-foreground xl:hidden">Last active</span>{user.lastActive || "-"}</div>
+              <div className="text-sm"><span className="mr-2 text-xs font-medium text-muted-foreground xl:hidden">Date added</span>{user.joiningDate || "-"}</div>
+              <div className="absolute right-3 top-4 xl:static xl:justify-self-end">
                 <Button variant="ghost" className="h-9 w-9 px-0" aria-label={`Actions for ${user.name}`} onClick={() => setMenuId(menuId === user.id ? null : user.id)}><MoreVertical className="h-4 w-4" /></Button>
                 {menuId === user.id ? <div className="absolute right-0 z-30 mt-1 w-44 rounded-md border border-border bg-white p-1 shadow-soft">
                   <MenuButton icon={Eye} label="View details" onClick={() => { setViewing(user); setMenuId(null); }} />
@@ -286,7 +286,7 @@ export function UserManagementScreen() {
         </div>
       </div>
 
-      <FormModal open={formOpen} title={editing ? "Edit user" : "Add user"} onClose={() => setFormOpen(false)} className="max-w-2xl">
+      <FormModal open={formOpen} title={editing ? "Edit user" : "Add user"} onClose={() => setFormOpen(false)} className="max-w-xl">
         <div className="grid gap-4 sm:grid-cols-2">
           {error ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
           <label className="space-y-1 sm:col-span-2"><span className="text-sm font-medium">Profile picture</span><Input type="file" accept="image/*" onChange={(event) => {
@@ -304,7 +304,7 @@ export function UserManagementScreen() {
         </div>
       </FormModal>
 
-      <FormModal open={Boolean(viewing)} title="User details" onClose={() => setViewing(null)} className="max-w-3xl">
+      <FormModal open={Boolean(viewing)} title="User details" onClose={() => setViewing(null)} className="max-w-xl">
         {viewing ? <div className="grid gap-3 sm:grid-cols-2">
           {[
             ["Name", viewing.name], ["Email", viewing.email], ["Phone", viewing.phone], ["Role", roleById[viewing.roleId]?.name],

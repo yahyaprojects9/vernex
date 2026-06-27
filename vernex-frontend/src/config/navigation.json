@@ -2,6 +2,7 @@
   {
     "label": "Organization",
     "items": [
+      { "label": "Dashboard", "href": "/dashboard", "icon": "LayoutDashboard" },
       { "label": "Role Management", "href": "/dashboard/roles", "icon": "ShieldCheck" },
       { "label": "User Management", "href": "/dashboard/users", "icon": "Users" },
       { "label": "Branch Management", "href": "/dashboard/branches", "icon": "MapPin" },

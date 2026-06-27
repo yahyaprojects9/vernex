@@ -3,7 +3,7 @@
   "companyName": "",
   "currency": "INR",
   "timezone": "Asia/Calcutta",
-  "dateFormat": "dd-MM-yyyy",
+  "dateFormat": "DD-MM-YYYY",
   "workingHours": "10:00 AM - 11:00 PM",
   "supportEmail": ""
   ,"companyRegistrationNumber": ""

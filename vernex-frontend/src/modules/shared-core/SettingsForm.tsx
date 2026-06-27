@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { settingsRegistry, type SettingField } from "@/config/settings/registry";
 import { AuthService, SettingsService } from "@/lib/services";
+import { applyPrimaryColor } from "@/lib/theme";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 
 export function SettingsForm() {
@@ -16,10 +17,6 @@ export function SettingsForm() {
   const [saved, setSaved] = useState(false);
   const roleId = AuthService.currentRole()?.id ?? "viewer";
   const results = useMemo(() => settingsRegistry.searchableFields(query, roleId), [query, roleId]);
-  const grouped = useMemo(() => results.reduce<Record<string, typeof results>>((groups, result) => {
-    (groups[result.section.heading] ??= []).push(result);
-    return groups;
-  }, {}), [results]);
 
   useEffect(() => {
     setDraft({ ...store.settings });
@@ -28,6 +25,7 @@ export function SettingsForm() {
   function update(field: SettingField, value: string | boolean) {
     setSaved(false);
     setDraft((current) => ({ ...current, [field.slug]: value }));
+    if (field.slug === "primaryColor") applyPrimaryColor(String(value));
   }
 
   function saveSettings() {
@@ -41,22 +39,18 @@ export function SettingsForm() {
         <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings" />
       </label>
-      {Object.entries(grouped).map(([heading, items]) => (
-        <section key={heading} className="dashboard-surface p-5">
-          <h2 className="text-lg font-semibold">{heading}</h2>
-          <p className="text-sm text-muted-foreground">{items[0]?.section.subheading}</p>
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            {items.map(({ field }) => {
+      <section className="dashboard-surface p-5">
+          <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+            {results.map(({ field }) => {
               const value = draft[field.slug] ?? field.defaultValue;
               const editable = field.editableRoles.includes(roleId);
-              return <div key={field.slug} id={field.slug} className="space-y-1">
+              return <div key={field.slug} id={field.slug} className="min-w-0 space-y-2">
                 <label className="text-sm font-medium">{field.label}</label>
                 <SettingControl field={field} value={value} disabled={!editable} onChange={(next) => update(field, next)} />
               </div>;
             })}
           </div>
-        </section>
-      ))}
+      </section>
       <div className="dashboard-surface flex items-center justify-end gap-3 p-4">
         {saved ? <span className="text-sm font-medium text-success">Settings saved</span> : null}
         <Button type="button" onClick={saveSettings} disabled={roleId !== "owner" && !AuthService.can("update", "Settings")}>Save Settings</Button>
@@ -72,7 +66,10 @@ function SettingControl({ field, value, disabled, onChange }: {
   onChange: (value: string | boolean) => void;
 }) {
   if (field.control === "textarea") return <Textarea value={String(value ?? "")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
-  if (field.control === "dropdown") return <Select value={String(value ?? "")} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
+  if (field.control === "dropdown") {
+    const selectedValue = field.slug === "dateFormat" ? String(value ?? "").toUpperCase() : String(value ?? "");
+    return <Select value={selectedValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
+  }
   if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-teal-700" />;
   if (field.control === "color") return <Input aria-label={field.label} className="h-12 w-12 min-h-12 cursor-pointer rounded-md p-1" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
   if (field.control === "image") return <div className="space-y-3">

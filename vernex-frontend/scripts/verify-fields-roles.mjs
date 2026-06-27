@@ -242,6 +242,7 @@ includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "
 
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
 includesAll(roles, "Permission matrix UI", ["Organization Roles", "FormModal", "Hierarchy Level", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
+includesAll(roles, "Compact labeled role form", ["Role Name", "Example: Branch Manager", "Description", "Example: Manages branch operations", "Status", "max-w-2xl"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
 
@@ -259,7 +260,7 @@ includesAll(sidebar, "Collapsible resizable sidebar", ["vernex-sidebar-width", "
 const navigation = JSON.parse(read("src/config/navigation.json"));
 const organizationOrder = navigation[0].items.map((item) => item.label);
 assert(
-  JSON.stringify(organizationOrder) === JSON.stringify(["Role Management", "User Management", "Branch Management", "Department Management", "Reports", "Settings"]),
+  JSON.stringify(organizationOrder) === JSON.stringify(["Dashboard", "Role Management", "User Management", "Branch Management", "Department Management", "Reports", "Settings"]),
   "Organization menu order is incorrect"
 );
 

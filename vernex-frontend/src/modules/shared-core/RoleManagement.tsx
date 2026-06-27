@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ChevronDown, ChevronRight, Edit, Eye, Plus } from "lucide-react";
 import permissionsConfig from "@/config/permissions.json";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { AuthService, RolePermissionService, RoleService, type RoleRecord } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { roleSchema } from "@/schemas/organization";
@@ -148,21 +148,21 @@ export function RoleManagement() {
         </table>
       </div>
 
-      <FormModal open={Boolean(draft)} title={editingId ? "Edit Role" : "Add Role"} onClose={() => { setDraft(null); setEditingId(null); }} className="max-h-[90vh] max-w-5xl overflow-y-auto">
+      <FormModal open={Boolean(draft)} title={editingId ? "Edit Role" : "Add Role"} onClose={() => { setDraft(null); setEditingId(null); }} className="max-w-2xl">
         {draft ? <div className="space-y-5">
           {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger">{validationError}</p> : null}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input placeholder="Role name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-            <label className="space-y-1"><span className="text-sm font-medium">Hierarchy Level</span><Input type="number" min="1" max="100" value={draft.hierarchyLevel} onChange={(event) => setDraft({ ...draft, hierarchyLevel: event.target.value })} /></label>
-            <Textarea className="md:col-span-2" placeholder="Description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
-            <Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1"><span className="text-sm font-medium">Role Name</span><Input placeholder="Example: Branch Manager" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
+            <label className="space-y-1"><span className="text-sm font-medium">Description</span><Input placeholder="Example: Manages branch operations" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
+            <label className="space-y-1"><span className="text-sm font-medium">Hierarchy Level</span><Input type="number" min="1" max="100" placeholder="Example: 50" value={draft.hierarchyLevel} onChange={(event) => setDraft({ ...draft, hierarchyLevel: event.target.value })} /></label>
+            <label className="space-y-1"><span className="text-sm font-medium">Status</span><Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as RoleDraft["status"] })}><option>Active</option><option>Inactive</option></Select></label>
           </div>
           <PermissionMatrix permissions={draft.permissions} editable onToggle={togglePermission} onToggleModule={setModule} />
           <div className="flex justify-end gap-2"><Button onClick={saveRole}>Save Role</Button><Button variant="secondary" onClick={() => { setDraft(null); setEditingId(null); }}>Cancel</Button></div>
         </div> : null}
       </FormModal>
 
-      <FormModal open={Boolean(viewingRole)} title={viewingRole?.name ?? "Role Details"} onClose={() => setViewingId(null)} className="max-h-[90vh] max-w-5xl overflow-y-auto">
+      <FormModal open={Boolean(viewingRole)} title={viewingRole?.name ?? "Role Details"} onClose={() => setViewingId(null)} className="max-w-2xl">
         {viewingRole ? <div className="space-y-5">
           <div><h2 className="text-lg font-semibold">{viewingRole.name}</h2><p className="text-sm text-muted-foreground">{viewingRole.description}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">

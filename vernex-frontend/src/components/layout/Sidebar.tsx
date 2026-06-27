@@ -86,7 +86,7 @@ export function Sidebar({
         onClick={onClose}
       />
       <aside
-        style={{ "--sidebar-width": `${collapsed ? 80 : width}px` } as React.CSSProperties}
+        style={{ "--sidebar-width": `${collapsed ? 64 : width}px` } as React.CSSProperties}
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex h-screen w-72 shrink-0 flex-col border-r border-border bg-white transition-[transform,width] duration-200 lg:static lg:w-[var(--sidebar-width)] lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
@@ -104,14 +104,14 @@ export function Sidebar({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <nav className={cn("flex-1 space-y-4 overflow-y-auto px-3 py-5", collapsed && "lg:px-2")}>
+        <nav className={cn("flex-1 space-y-4 overflow-y-auto px-3 py-5", collapsed && "lg:flex lg:flex-col lg:items-center lg:px-0")}>
           {navigationGroups.map((group) => {
             const isProductGroup = group.label !== "Organization";
             const items = group.items.filter(canAccessItem);
             if (!items.length) return null;
 
             return (
-              <details key={group.label} open className="group">
+              <details key={group.label} open className={cn("group", collapsed && "lg:w-full")}>
                 <summary
                   className={cn(
                     "flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-sm font-bold transition [&::-webkit-details-marker]:hidden",
@@ -126,7 +126,7 @@ export function Sidebar({
                     <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
                   ) : null}
                 </summary>
-                <div className={cn("mt-2 space-y-1", isProductGroup && !collapsed ? "pl-2" : "")}>
+                <div className={cn("mt-2 space-y-1", isProductGroup && !collapsed ? "pl-2" : "", collapsed && "lg:flex lg:flex-col lg:items-center")}>
                 {items.map((item) => {
                   const active = pathname === item.href;
                   const Icon = item.icon;
@@ -142,7 +142,7 @@ export function Sidebar({
                       }}
                       className={cn(
                         "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
-                        collapsed && "lg:justify-center lg:px-2",
+                        collapsed && "lg:h-11 lg:w-11 lg:justify-center lg:gap-0 lg:p-0",
                         active ? "bg-primary text-primary-foreground" : "text-slate-700 hover:bg-muted",
                         isProductGroup ? "text-[13px]" : ""
                       )}
