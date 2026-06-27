@@ -15,7 +15,7 @@ export default function SalesAnalyticsPage() {
 
   return (
     <>
-      <PageHeader title="Reports & Analytics" description="Lead trends, source split, quality mix, conversion rate, and AI vs human handling." breadcrumbs={["Sales Agent", "Analytics"]} />
+      <PageHeader title="Reports & Analytics" breadcrumbs={["Sales Agent", "Analytics"]} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Conversion Rate" value={`${conversionRate}%`} helper="From stored leads" icon={TrendingUp} />
         <StatCard label="AI Handled" value={String(aiHandled)} helper="Conversations" icon={Bot} />

@@ -8,7 +8,6 @@ export function PageHeader({
   breadcrumbs = []
 }: {
   title: string;
-  description?: string;
   actionLabel?: string;
   onAction?: () => void;
   breadcrumbs?: string[];

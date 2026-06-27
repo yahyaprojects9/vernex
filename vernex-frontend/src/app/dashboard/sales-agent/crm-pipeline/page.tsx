@@ -25,7 +25,7 @@ export default function CrmPipelinePage() {
 
   return (
     <>
-      <PageHeader title="CRM Pipeline" description="Drag-friendly visual pipeline for lead movement from new to converted or lost." breadcrumbs={["Sales Agent", "CRM Pipeline"]} />
+      <PageHeader title="CRM Pipeline" breadcrumbs={["Sales Agent", "CRM Pipeline"]} />
       <KanbanBoard
         onMove={canEditLead ? moveLead : undefined}
         columns={stages.map((stage) => ({

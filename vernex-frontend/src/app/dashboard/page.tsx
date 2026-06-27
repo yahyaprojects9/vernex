@@ -6,7 +6,6 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title="Vernex Platform"
-        description="Unified dashboard with role-based visibility, branch filtering, local persistence, and dynamic analytics."
         breadcrumbs={["Organization", "Dashboard"]}
       />
       <DashboardOverview />

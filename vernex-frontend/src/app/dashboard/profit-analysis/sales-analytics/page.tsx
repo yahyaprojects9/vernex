@@ -4,7 +4,7 @@ import { SalesAnalyticsIngestion } from "@/modules/profit-analysis/SalesAnalytic
 export default function ProfitSalesAnalyticsPage() {
   return (
     <>
-      <PageHeader title="Sales Analytics" description="Central data ingestion layer: sources, imports, preview, mapping, validation, history, and generated analytics." breadcrumbs={["Profit Analysis", "Sales Analytics"]} />
+      <PageHeader title="Sales Analytics" breadcrumbs={["Profit Analysis", "Sales Analytics"]} />
       <SalesAnalyticsIngestion />
     </>
   );

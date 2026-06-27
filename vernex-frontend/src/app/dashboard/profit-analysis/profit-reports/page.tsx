@@ -36,7 +36,7 @@ export default function ProfitReportsPage() {
 
   return (
     <>
-      <PageHeader title="Profit Reports" description="Daily, weekly, monthly, and custom range report previews with export and send actions." breadcrumbs={["Profit Analysis", "Profit Reports"]} />
+      <PageHeader title="Profit Reports" breadcrumbs={["Profit Analysis", "Profit Reports"]} />
       <div className="dashboard-surface mb-6 grid gap-4 p-4 lg:grid-cols-[auto_1fr_auto] lg:items-end">
         <div className="flex flex-wrap gap-2">
           {["Daily", "Weekly", "Monthly"].map((item) => (

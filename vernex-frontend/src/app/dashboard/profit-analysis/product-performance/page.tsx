@@ -4,7 +4,7 @@ import { ProductPerformanceScreen } from "@/modules/shared-core/ManagementScreen
 export default function ProductPerformancePage() {
   return (
     <>
-      <PageHeader title="Product Performance" description="Working menu item CRUD with filtering, export, and dynamic performance records." breadcrumbs={["Profit Analysis", "Product Performance"]} />
+      <PageHeader title="Product Performance" breadcrumbs={["Profit Analysis", "Product Performance"]} />
       <ProductPerformanceScreen />
     </>
   );

@@ -4,7 +4,7 @@ import { ReportsGrid } from "@/modules/shared-core/CommonSections";
 export default function ReportsPage() {
   return (
     <>
-      <PageHeader title="Reports" description="Organization report shell for platform exports and business summaries." breadcrumbs={["Organization", "Reports"]} />
+      <PageHeader title="Reports" breadcrumbs={["Organization", "Reports"]} />
       <ReportsGrid />
     </>
   );

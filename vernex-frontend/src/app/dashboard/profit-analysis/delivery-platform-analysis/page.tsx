@@ -64,7 +64,7 @@ export default function DeliveryPlatformAnalysisPage() {
 
   return (
     <>
-      <PageHeader title="Delivery Platform Analysis" description="Compare dine-in, takeaway, and delivery platform revenue." breadcrumbs={["Profit Analysis", "Delivery Platforms"]} />
+      <PageHeader title="Delivery Platform Analysis" breadcrumbs={["Profit Analysis", "Delivery Platforms"]} />
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Dine-in Revenue" value={formatCurrency(platformRows[0].revenue)} icon={Store} helper="From stored records" />
         <StatCard label="Swiggy Revenue" value={formatCurrency(platformRows[1].revenue)} icon={Bike} helper="From stored records" />
