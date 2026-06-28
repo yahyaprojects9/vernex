@@ -62,16 +62,16 @@ export function ReportsGrid() {
           <h2 className="mt-1 text-xl font-bold">Report Preview: {activeReport}</h2>
           <p className="text-sm text-muted-foreground">Date range: Current selected period | Filters: Role scope, branch scope, department scope</p>
           <div className="mt-4 overflow-x-auto">
-          <div className="grid min-w-[620px] grid-cols-[1fr_1fr_auto] gap-3">
+          <div className="grid min-w-[620px] grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_auto] items-end gap-3">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">From date</span>
-              <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+              <span className="text-xs font-medium uppercase text-muted-foreground">From Date</span>
+              <Input className="uppercase" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">To date</span>
-              <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+              <span className="text-xs font-medium uppercase text-muted-foreground">To Date</span>
+              <Input className="uppercase" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
             </label>
-            <div className="flex items-end">
+            <div>
               <Button variant="secondary" onClick={downloadReport}>Download</Button>
             </div>
           </div>
@@ -79,10 +79,10 @@ export function ReportsGrid() {
         </div>
         <div className="overflow-x-auto p-5">
         <div className="grid min-w-[720px] grid-cols-4 gap-4">
-          <StatCard label="Leads" value={String(metrics.leads)} helper="Scoped records" />
-          <StatCard label="Orders" value={String(metrics.totalOrders)} helper="Imported rows" />
-          <StatCard label="Revenue" value={formatCurrency(metrics.totalSales)} helper="Sales summary" />
-          <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper="After wastage" />
+          <StatCard className="aspect-square" label="Leads" value={String(metrics.leads)} helper="Scoped records" />
+          <StatCard className="aspect-square" label="Orders" value={String(metrics.totalOrders)} helper="Imported rows" />
+          <StatCard className="aspect-square" label="Revenue" value={formatCurrency(metrics.totalSales)} helper="Sales summary" />
+          <StatCard className="aspect-square" label="Profit" value={formatCurrency(metrics.profit)} helper="After wastage" />
         </div>
         </div>
         <div className="p-5 pt-0">

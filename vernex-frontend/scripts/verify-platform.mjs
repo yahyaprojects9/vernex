@@ -149,8 +149,8 @@ assertIncludes(
     "Maximum Order Quantity",
     "Report Preview",
     "Generated at",
-    "From date",
-    "To date",
+    "From Date",
+    "To Date",
     "Download"
   ],
   "Common sections"
