@@ -187,7 +187,7 @@ export function RoleManagement() {
       <section className="dashboard-surface p-5">
         <h2 className="text-lg font-semibold">Organization Hierarchy</h2>
         <div className="mt-5 overflow-x-auto pb-4">
-          <div className="org-tree min-w-max">
+          <div className="org-tree">
             <ul>
               {hierarchy.map((node) => <HierarchyNode key={node.user.id} node={node} store={store} />)}
             </ul>

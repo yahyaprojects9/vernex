@@ -59,9 +59,17 @@ textarea {
   }
 }
 
+.org-tree {
+  width: max-content;
+  min-width: 100%;
+  padding-inline: 24px;
+}
+
 .org-tree ul {
   position: relative;
   display: flex;
+  width: max-content;
+  min-width: 100%;
   justify-content: center;
   padding-top: 28px;
 }
