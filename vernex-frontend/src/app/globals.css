@@ -149,8 +149,34 @@ textarea {
 }
 
 .color-picker-square {
+  display: block;
   width: 48px !important;
   height: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid hsl(var(--input));
+  border-radius: 6px;
+  background: transparent;
+}
+
+.color-picker-square::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-square::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+.color-picker-square::-moz-color-swatch {
+  border: 0;
+  border-radius: 5px;
 }
 
 @media (min-width: 768px) {

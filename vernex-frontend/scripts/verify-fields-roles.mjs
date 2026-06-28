@@ -288,8 +288,8 @@ assert(!organizationReports.includes("Insights and recommendations"), "Organizat
 
 const settings = read("src/modules/shared-core/SettingsForm.tsx");
 includesAll(settings, "Staged settings", ["setDraft", "saveSettings", "Save Settings", 'field.control === "color"', "Company logo preview"]);
-includesAll(settings, "Settings control layout", ["settings-fields", "settings-field", "color-picker-square", "width: 48", "aspectRatio: \"1 / 1\"", "opacity-0", "block h-5 w-5"]);
-includesAll(read("src/app/globals.css"), "Hard settings geometry", [".settings-fields", "grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr)", ".color-picker-square", "width: 48px !important"]);
+includesAll(settings, "Settings control layout", ["settings-fields", "settings-field", "color-picker-square", "width: 48", 'type="color"', "block h-5 w-5"]);
+includesAll(read("src/app/globals.css"), "Hard settings geometry", [".settings-fields", "grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr)", ".color-picker-square", "width: 48px !important", "::-webkit-color-swatch", "::-moz-color-swatch"]);
 
 const overviews = read("src/modules/shared-core/DynamicOverviews.tsx");
 includesAll(overviews, "Data-driven overview charts", ["SalesAgentOverview", "ProfitOverview", "Lead trend", "Lead source split", "AnalyticsService.salesTrend()", "platformActivity", "productProfit", 'className="aspect-square"']);

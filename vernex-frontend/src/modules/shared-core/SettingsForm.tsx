@@ -71,10 +71,15 @@ function SettingControl({ field, value, disabled, onChange }: {
     return <Select value={selectedValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
   }
   if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="block h-5 w-5 accent-primary" />;
-  if (field.control === "color") return <label className="color-picker-square relative block shrink-0 overflow-hidden rounded-md border border-input shadow-sm" style={{ width: 48, height: 48, minWidth: 48, maxWidth: 48, minHeight: 48, maxHeight: 48, aspectRatio: "1 / 1", backgroundColor: String(value ?? "#0f766e") }}>
-    <span className="sr-only">{field.label}</span>
-    <input aria-label={field.label} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
-  </label>;
+  if (field.control === "color") return <input
+    aria-label={field.label}
+    className="color-picker-square"
+    style={{ width: 48, height: 48, minWidth: 48, maxWidth: 48, minHeight: 48, maxHeight: 48 }}
+    type="color"
+    value={String(value ?? "#0f766e")}
+    disabled={disabled}
+    onChange={(event) => onChange(event.target.value)}
+  />;
   if (field.control === "image") return <div className="space-y-3">
     <Input className="max-w-full file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1" type="file" accept="image/*" disabled={disabled} onChange={(event) => {
       const file = event.target.files?.[0];
