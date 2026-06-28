@@ -88,18 +88,13 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="relative">
           <button
             type="button"
-            className="flex max-w-[210px] items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-left sm:max-w-none"
+            className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-md border border-border bg-white text-primary transition hover:bg-muted"
             onClick={() => setProfileOpen((value) => !value)}
+            aria-label="Open profile"
+            aria-expanded={profileOpen}
+            title={currentUser?.name ?? "Profile"}
           >
-            <UserCircle className="h-5 w-5 shrink-0 text-primary" />
-            <span className="hidden min-w-0 text-sm font-semibold sm:inline">
-              <span className="block truncate">{currentUser?.name ?? "Guest"}</span>
-            </span>
-            {currentUser ? (
-              <span className="hidden rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary sm:inline">
-                {currentRole?.name ?? currentUser.roleId}
-              </span>
-            ) : null}
+            <UserCircle className="h-7 w-7" />
           </button>
           {profileOpen ? (
             <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-md border border-border bg-white p-4 shadow-soft">
