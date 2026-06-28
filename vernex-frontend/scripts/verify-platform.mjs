@@ -142,7 +142,7 @@ assertIncludes(
   [
     "Create AI Rule",
     "Edit AI Rule",
-    "Clone rule",
+    "cloneRule",
     "Constraint value",
     "Fallback response",
     "Maximum Discount %",
@@ -155,9 +155,10 @@ assertIncludes(
   ],
   "Common sections"
 );
+assertIncludes(common, ["KebabActionMenu", 'label: "Edit"', 'label: "Clone"', 'label: "Delete"'], "AI auto-reply actions");
 
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
-assertIncludes(roles, ["Module Select All", "togglePermission", "PermissionMatrix"], "Role management");
+assertIncludes(roles, ["Module Select All", "togglePermission", "PermissionMatrix", "KebabActionMenu", "org-tree"], "Role management");
 
 const chart = read("src/components/charts/ChartCard.tsx");
 assertIncludes(chart, ["dynamic", "no data available"], "Chart card");
@@ -197,6 +198,8 @@ const formModal = read("src/components/modals/FormModal.tsx");
 assertIncludes(formModal, ["max-h-[calc(100dvh-1.5rem)]", "overflow-hidden", "overflow-y-auto", "shadow-2xl"], "Scrollable modal");
 const theme = read("src/lib/theme.ts");
 assertIncludes(theme, ["--primary", "--ring", "--primary-foreground", "contrastForeground"], "Primary color theme");
+assertIncludes(read("src/components/layout/ThemeInitializer.tsx"), ["vernex-platform-v4-empty", "applyPrimaryColor", "vernex-store-change", "storage"], "Global theme initializer");
+assertIncludes(read("src/app/globals.css"), [".org-tree ul", ".org-node", "border-left"], "Organization chart styles");
 
 const topNavbar = read("src/components/layout/TopNavbar.tsx");
 assertIncludes(topNavbar, ["Profile", "Logout", "AuthService.logout", "Phone", "Company", "Industry"], "Top navbar profile");

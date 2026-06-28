@@ -254,7 +254,7 @@ includesAll(crm, "CRM stages", ["New", "Contacted", "Follow-up", "Interested", "
 const roles = read("src/modules/shared-core/RoleManagement.tsx");
 includesAll(roles, "Permission matrix UI", ["Organization Roles", "FormModal", "Hierarchy Level", "PermissionMatrix", "Module Select All", "Organization Hierarchy"]);
 includesAll(roles, "Compact labeled role form", ["Role Name", "Example: Branch Manager", "Description", "Example: Manages branch operations", "Status", "max-w-2xl"]);
-includesAll(roles, "Level-derived organization tree UI", ["buildOrganizationHierarchy", "HierarchyEntry", "UserAvatar", "Level {level}", "children.map"]);
+includesAll(roles, "Level-derived organization tree UI", ["buildOrganizationHierarchy", "HierarchyEntry", "UserAvatar", "org-tree", "Level {level}", "children.map", "KebabActionMenu"]);
 includesAll(read("src/lib/organizationHierarchy.ts"), "Shared hierarchy logic", ["buildOrganizationHierarchy", "parentByUser", "managerId", "reportingManager", "relationshipScore", "canEditUserHierarchy"]);
 const permissions = read("src/config/permissions.json");
 includesAll(permissions, "Permission matrix fields", ["Configure Permissions", "View Users", "Create Users", "Manage Rules", "Import Data"]);
@@ -288,10 +288,10 @@ assert(!organizationReports.includes("Insights and recommendations"), "Organizat
 
 const settings = read("src/modules/shared-core/SettingsForm.tsx");
 includesAll(settings, "Staged settings", ["setDraft", "saveSettings", "Save Settings", 'field.control === "color"', "Company logo preview"]);
-includesAll(settings, "Settings control layout", ["md:gap-x-12", "xl:gap-x-16", "!w-12", "aspect-square", "block h-5 w-5"]);
+includesAll(settings, "Settings control layout", ["md:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]", "md:col-start-1", "md:col-start-3", "h-12 w-12", "opacity-0", "block h-5 w-5"]);
 
 const overviews = read("src/modules/shared-core/DynamicOverviews.tsx");
-includesAll(overviews, "Data-driven overview charts", ["SalesAgentOverview", "ProfitOverview", "Lead trend", "Lead source split", "AnalyticsService.salesTrend()", 'className="aspect-square"']);
+includesAll(overviews, "Data-driven overview charts", ["SalesAgentOverview", "ProfitOverview", "Lead trend", "Lead source split", "AnalyticsService.salesTrend()", "platformActivity", "productProfit", 'className="aspect-square"']);
 includesAll(read("src/app/dashboard/profit-analysis/peak-hour-analysis/page.tsx"), "Peak hour chart", ["hourlySales", "ChartCard", 'type="bar"']);
 includesAll(read("src/app/dashboard/profit-analysis/delivery-platform-analysis/page.tsx"), "Delivery platform chart", ["platformRows", "ChartCard", 'type="bar"']);
 

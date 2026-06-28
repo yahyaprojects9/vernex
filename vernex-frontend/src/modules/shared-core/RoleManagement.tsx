@@ -9,7 +9,7 @@ import { AuthService, RolePermissionService, RoleService, type RoleRecord } from
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { roleSchema } from "@/schemas/organization";
 import { FormModal } from "@/components/modals/FormModal";
-import { DetailItem, LabeledField, UserAvatar } from "@/components/ui/ManagementPrimitives";
+import { DetailItem, KebabActionMenu, LabeledField, UserAvatar } from "@/components/ui/ManagementPrimitives";
 import { buildOrganizationHierarchy, type HierarchyEntry } from "@/lib/organizationHierarchy";
 
 type RoleDraft = {
@@ -33,6 +33,7 @@ export function RoleManagement() {
   const [draft, setDraft] = useState<RoleDraft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState("");
   const canCreate = AuthService.can("create", "Role");
   const canEdit = AuthService.can("update", "Role") || AuthService.can("manage", "Role");
@@ -138,10 +139,18 @@ export function RoleManagement() {
                   <td className="whitespace-nowrap px-4 py-3">{index + 1}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-semibold">{role.name}</td>
                   <td className="max-w-sm truncate whitespace-nowrap px-4 py-3 text-muted-foreground">{role.description}</td>
-                  <td className="whitespace-nowrap px-4 py-3"><div className="flex flex-nowrap gap-2">
-                    <Button variant="secondary" className="h-9 w-9 px-0" aria-label="View role" onClick={() => { setViewingId(role.id); setDraft(null); }}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="secondary" className="h-9 w-9 px-0" aria-label="Edit role" disabled={!canEdit || role.id === "admin"} onClick={() => editRole(role)}><Edit className="h-4 w-4" /></Button>
-                  </div></td>
+                  <td className="relative whitespace-nowrap px-4 py-3">
+                    <KebabActionMenu
+                      open={menuId === role.id}
+                      onToggle={() => setMenuId(menuId === role.id ? null : role.id)}
+                      ariaLabel={`Actions for ${role.name}`}
+                      openAbove={index >= sortedRoles.length - 2}
+                      items={[
+                        { icon: Eye, label: "View", onClick: () => { setViewingId(role.id); setDraft(null); setMenuId(null); } },
+                        { icon: Edit, label: "Edit", disabled: !canEdit || role.id === "admin", onClick: () => { editRole(role); setMenuId(null); } }
+                      ]}
+                    />
+                  </td>
                 </tr>
               );
             })}
@@ -177,8 +186,12 @@ export function RoleManagement() {
 
       <section className="dashboard-surface p-5">
         <h2 className="text-lg font-semibold">Organization Hierarchy</h2>
-        <div className="mt-4 space-y-3">
-          {hierarchy.map((node) => <HierarchyNode key={node.user.id} node={node} depth={0} store={store} />)}
+        <div className="mt-5 overflow-x-auto pb-4">
+          <div className="org-tree min-w-max">
+            <ul>
+              {hierarchy.map((node) => <HierarchyNode key={node.user.id} node={node} store={store} />)}
+            </ul>
+          </div>
         </div>
       </section>
     </div>
@@ -203,18 +216,20 @@ function PermissionMatrix({ permissions, editable = false, onToggle, onToggleMod
   ))}</div>;
 }
 
-function HierarchyNode({ node, depth, store }: { node: HierarchyEntry; depth: number; store: ReturnType<typeof useLocalStore> }) {
+function HierarchyNode({ node, store }: { node: HierarchyEntry; store: ReturnType<typeof useLocalStore> }) {
   const { user, level, children } = node;
   const role = store.roles.find((item) => item.id === user.roleId)?.name ?? user.roleId;
   const branch = store.branches.find((item) => user.branchIds.includes(item.id))?.name ?? "Unassigned";
   const department = store.departments.find((item) => user.departmentIds.includes(item.id))?.name ?? "Unassigned";
-  return <div className="relative" style={{ marginLeft: Math.min(depth, 6) * 24 }}>
-    {depth ? <span className="absolute -left-4 top-0 h-1/2 w-4 rounded-bl-md border-b border-l border-border" /> : null}
-    <div className="flex min-w-0 items-center gap-3 rounded-md border border-border bg-white p-3">
-      <UserAvatar name={user.name} src={user.avatar} size={36} strong />
-      <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{user.name} - {role}</span><span className="block truncate text-xs text-muted-foreground">{department} | {branch}</span></span>
-      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Level {level}</span>
+  return <li>
+    <div className="org-node">
+      <UserAvatar name={user.name} src={user.avatar} size={64} strong />
+      <div className="min-w-0 text-left">
+        <p className="truncate font-semibold">{user.name}</p>
+        <p className="truncate text-sm text-primary">{role} - Level {level}</p>
+        <p className="truncate text-xs text-muted-foreground">{department} | {branch}</p>
+      </div>
     </div>
-    {children.length ? <div className="mt-2 space-y-2 border-l border-border pl-2">{children.map((child) => <HierarchyNode key={child.user.id} node={child} depth={depth + 1} store={store} />)}</div> : null}
-  </div>;
+    {children.length ? <ul>{children.map((child) => <HierarchyNode key={child.user.id} node={child} store={store} />)}</ul> : null}
+  </li>;
 }

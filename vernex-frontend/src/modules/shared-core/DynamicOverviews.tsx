@@ -16,6 +16,21 @@ export function DashboardOverview() {
   const store = useLocalStore();
   const metrics = AnalyticsService.dashboardMetrics();
   const salesTrend = AnalyticsService.salesTrend();
+  const salesTotal = salesTrend.reduce((sum, row) => sum + row.value, 0);
+  const platformSales = ["Dine-in", "Swiggy", "Zomato", "Takeaway"].map((name) => ({
+    name,
+    value: store.salesRecords.filter((record) => record.orderSource === name).reduce((sum, record) => sum + record.totalAmount, 0)
+  }));
+  const leadSources = ["WhatsApp", "Website", "Email", "Manual"].map((name) => ({
+    name,
+    value: store.leads.filter((lead) => lead.source === name).length
+  }));
+  const platformActivity = platformSales.some((row) => row.value > 0) ? platformSales : leadSources;
+  const productProfit = store.productPerformance.map((item) => ({
+    name: item.itemName,
+    value: Math.max(0, item.revenue - item.foodCost)
+  }));
+  const profitTrend = salesTotal > 0 ? salesTrend : productProfit;
   const role = AuthService.currentRole();
   const hasBusinessData = Boolean(store.leads.length || store.salesRecords.length || store.wastage.length || store.costs.length || store.productPerformance.length);
 
@@ -29,8 +44,8 @@ export function DashboardOverview() {
         <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper={metrics.profit ? "Sales minus wastage" : "0 Profit"} icon={BarChart3} />
       </div>
       {hasBusinessData ? <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <ChartCard title="Platform Sales Activity" data={salesTrend} />
-        <ChartCard title="Profit Trend" data={salesTrend} type="bar" />
+        <ChartCard title="Platform Sales Activity" data={platformActivity} />
+        <ChartCard title="Profit Trend" data={profitTrend} type="bar" />
       </div> : <div className="mt-6"><EmptyState title="No chart data available" description="Create records or import data to generate dashboard charts." /></div>}
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <DataTable<Lead>

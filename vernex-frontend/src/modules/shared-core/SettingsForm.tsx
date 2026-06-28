@@ -40,11 +40,11 @@ export function SettingsForm() {
         <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings" />
       </label>
       <section className="dashboard-surface p-5">
-          <div className="grid gap-y-7 md:grid-cols-2 md:gap-x-12 xl:gap-x-16">
-            {results.map(({ field }) => {
+          <div className="grid gap-y-7 md:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
+            {results.map(({ field }, index) => {
               const value = draft[field.slug] ?? field.defaultValue;
               const editable = field.editableRoles.includes(roleId);
-              return <div key={field.slug} id={field.slug} className="min-w-0 space-y-2">
+              return <div key={field.slug} id={field.slug} className={`min-w-0 space-y-2 ${index % 2 === 0 ? "md:col-start-1" : "md:col-start-3"}`}>
                 <label className="text-sm font-medium">{field.label}</label>
                 <SettingControl field={field} value={value} disabled={!editable} onChange={(next) => update(field, next)} />
               </div>;
@@ -71,7 +71,10 @@ function SettingControl({ field, value, disabled, onChange }: {
     return <Select value={selectedValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
   }
   if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="block h-5 w-5 accent-primary" />;
-  if (field.control === "color") return <Input aria-label={field.label} className="!h-12 !min-h-12 !w-12 !min-w-12 !max-w-12 aspect-square cursor-pointer rounded-md p-1" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />;
+  if (field.control === "color") return <label className="relative block h-12 w-12 shrink-0 overflow-hidden rounded-md border border-input shadow-sm" style={{ backgroundColor: String(value ?? "#0f766e") }}>
+    <span className="sr-only">{field.label}</span>
+    <input aria-label={field.label} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+  </label>;
   if (field.control === "image") return <div className="space-y-3">
     <Input className="max-w-full file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1" type="file" accept="image/*" disabled={disabled} onChange={(event) => {
       const file = event.target.files?.[0];

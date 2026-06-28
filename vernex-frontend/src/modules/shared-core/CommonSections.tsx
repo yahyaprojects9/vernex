@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { KebabActionMenu } from "@/components/ui/ManagementPrimitives";
 import { ReportPreview } from "@/modules/shared-core/ReportPreview";
 import { AnalyticsService, AuthService, FollowUpRuleService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
@@ -99,6 +100,7 @@ export function AiReplyConfigurator() {
   const store = useLocalStore();
   const canManageRules = AuthService.canModify("Sales Agent", "Manage Rules");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [draft, setDraft] = useState<{
     ruleName: string;
     category: RuleCategory;
@@ -184,7 +186,7 @@ export function AiReplyConfigurator() {
             {store.rules.some((rule) => rule.status === "Active") ? "Active" : "No rules"}
           </StatusBadge>
         </div>
-        {store.rules.length ? store.rules.map((rule) => (
+        {store.rules.length ? store.rules.map((rule, index) => (
           <div key={rule.id} className="rounded-md border border-border p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -198,10 +200,18 @@ export function AiReplyConfigurator() {
                   Constraint: {rule.constraintType ?? "None"} {rule.constraintValue ? `= ${rule.constraintValue}` : ""}
                 </p>
               </div>
-              <div className="flex gap-1">
-                <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => editRule(rule)} aria-label="Edit rule" disabled={!canManageRules}><Edit className="h-4 w-4" /></Button>
-                <Button variant="secondary" className="h-9 w-9 px-0" onClick={() => cloneRule(rule)} aria-label="Clone rule" disabled={!canManageRules}><Copy className="h-4 w-4" /></Button>
-                <Button variant="danger" className="h-9 w-9 px-0" onClick={() => FollowUpRuleService.delete(rule.id)} aria-label="Delete rule" disabled={!canManageRules}><Trash2 className="h-4 w-4" /></Button>
+              <div className="relative">
+                <KebabActionMenu
+                  open={menuId === rule.id}
+                  onToggle={() => setMenuId(menuId === rule.id ? null : rule.id)}
+                  ariaLabel={`Actions for ${rule.ruleName}`}
+                  openAbove={index >= store.rules.length - 2}
+                  items={[
+                    { icon: Edit, label: "Edit", disabled: !canManageRules, onClick: () => { editRule(rule); setMenuId(null); } },
+                    { icon: Copy, label: "Clone", disabled: !canManageRules, onClick: () => { cloneRule(rule); setMenuId(null); } },
+                    { icon: Trash2, label: "Delete", danger: true, disabled: !canManageRules, onClick: () => { FollowUpRuleService.delete(rule.id); setMenuId(null); } }
+                  ]}
+                />
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
