@@ -141,3 +141,28 @@ textarea {
   background: hsl(var(--card));
   box-shadow: 0 8px 20px rgb(15 23 42 / 8%);
 }
+
+.settings-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 28px;
+}
+
+.color-picker-square {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+@media (min-width: 768px) {
+  .settings-fields {
+    grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+  }
+
+  .settings-field:nth-child(odd) {
+    grid-column: 1;
+  }
+
+  .settings-field:nth-child(even) {
+    grid-column: 3;
+  }
+}

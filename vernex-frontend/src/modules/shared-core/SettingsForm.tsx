@@ -40,11 +40,11 @@ export function SettingsForm() {
         <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings" />
       </label>
       <section className="dashboard-surface p-5">
-          <div className="grid gap-y-7 md:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
-            {results.map(({ field }, index) => {
+          <div className="settings-fields">
+            {results.map(({ field }) => {
               const value = draft[field.slug] ?? field.defaultValue;
               const editable = field.editableRoles.includes(roleId);
-              return <div key={field.slug} id={field.slug} className={`min-w-0 space-y-2 ${index % 2 === 0 ? "md:col-start-1" : "md:col-start-3"}`}>
+              return <div key={field.slug} id={field.slug} className="settings-field min-w-0 space-y-2">
                 <label className="text-sm font-medium">{field.label}</label>
                 <SettingControl field={field} value={value} disabled={!editable} onChange={(next) => update(field, next)} />
               </div>;
@@ -71,7 +71,7 @@ function SettingControl({ field, value, disabled, onChange }: {
     return <Select value={selectedValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option}>{option}</option>)}</Select>;
   }
   if (field.control === "toggle") return <input type="checkbox" checked={Boolean(value)} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="block h-5 w-5 accent-primary" />;
-  if (field.control === "color") return <label className="relative block h-12 w-12 shrink-0 overflow-hidden rounded-md border border-input shadow-sm" style={{ backgroundColor: String(value ?? "#0f766e") }}>
+  if (field.control === "color") return <label className="color-picker-square relative block shrink-0 overflow-hidden rounded-md border border-input shadow-sm" style={{ width: 48, height: 48, minWidth: 48, maxWidth: 48, minHeight: 48, maxHeight: 48, aspectRatio: "1 / 1", backgroundColor: String(value ?? "#0f766e") }}>
     <span className="sr-only">{field.label}</span>
     <input aria-label={field.label} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="color" value={String(value ?? "#0f766e")} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
   </label>;
