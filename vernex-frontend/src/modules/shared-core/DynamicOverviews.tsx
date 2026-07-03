@@ -17,6 +17,7 @@ export function DashboardOverview() {
   const metrics = AnalyticsService.dashboardMetrics();
   const salesTrend = AnalyticsService.salesTrend();
   const salesTotal = salesTrend.reduce((sum, row) => sum + row.value, 0);
+  const datedSalesTrend = buildDatedSalesTrend(store.salesRecords);
   const platformSales = ["Dine-in", "Swiggy", "Zomato", "Takeaway"].map((name) => ({
     name,
     value: store.salesRecords.filter((record) => record.orderSource === name).reduce((sum, record) => sum + record.totalAmount, 0)
@@ -30,7 +31,7 @@ export function DashboardOverview() {
     name: item.itemName,
     value: Math.max(0, item.revenue - item.foodCost)
   }));
-  const profitTrend = salesTotal > 0 ? salesTrend : productProfit;
+  const profitTrend = salesTotal > 0 ? datedSalesTrend : productProfit;
   const role = AuthService.currentRole();
   const hasBusinessData = Boolean(store.leads.length || store.salesRecords.length || store.wastage.length || store.costs.length || store.productPerformance.length);
 
@@ -44,8 +45,8 @@ export function DashboardOverview() {
         <StatCard label="Profit" value={formatCurrency(metrics.profit)} helper={metrics.profit ? "Sales minus wastage" : "0 Profit"} icon={BarChart3} />
       </div>
       {hasBusinessData ? <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <ChartCard title="Platform Sales Activity" data={platformActivity} />
-        <ChartCard title="Profit Trend" data={profitTrend} type="bar" />
+        <ChartCard title="Platform Sales Activity" data={platformActivity} type="bar" />
+        <ChartCard title="Profit Trend" data={profitTrend} />
       </div> : <div className="mt-6"><EmptyState title="No chart data available" description="Create records or import data to generate dashboard charts." /></div>}
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <DataTable<Lead>
@@ -79,6 +80,21 @@ export function DashboardOverview() {
   );
 }
 
+function buildDatedSalesTrend(salesRecords: { date: string; totalAmount: number }[]) {
+  const formatter = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "2-digit", month: "2-digit" });
+  const totals = new Map<string, number>();
+  salesRecords.forEach((record) => {
+    if (!record.date) return;
+    totals.set(record.date, (totals.get(record.date) ?? 0) + Number(record.totalAmount || 0));
+  });
+  return [...totals.entries()]
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .map(([date, value]) => ({
+      name: formatter.format(new Date(`${date}T00:00:00`)),
+      value
+    }));
+}
+
 export function SalesAgentOverview() {
   const store = useLocalStore();
   const sourceSplit = ["WhatsApp", "Website", "Email", "Manual"].map((source) => ({
@@ -97,8 +113,8 @@ export function SalesAgentOverview() {
         <StatCard className="aspect-square" label="Hot Leads" value={String(store.leads.filter((l) => l.leadScore === "Hot").length)} icon={Flame} helper="High intent" />
         <StatCard className="aspect-square" label="Warm Leads" value={String(store.leads.filter((l) => l.leadScore === "Warm").length)} icon={Zap} helper="Needs follow-up" />
         <StatCard className="aspect-square" label="Cold Leads" value={String(store.leads.filter((l) => l.leadScore === "Cold").length)} icon={Snowflake} helper="Low urgency" />
-        <StatCard className="aspect-square" label="Pending Follow-ups" value={String(store.leads.filter((l) => l.status === "Follow-up").length)} icon={Timer} helper="Scheduled" />
-        <StatCard className="aspect-square" label="Converted" value={String(store.leads.filter((l) => l.status === "Converted").length)} icon={CheckCircle2} helper="Won leads" />
+        <StatCard className="aspect-square" label="Pending Follow-ups" value={String(store.leads.filter((l) => Boolean(l.nextFollowUp) && !["Converted", "Lost"].includes(l.status)).length)} icon={Timer} helper="Scheduled" />
+        <StatCard className="aspect-square" label="Converted" value={String(store.leads.filter((l) => l.status === "Converted").length)} icon={CheckCircle2} helper="Closed successfully" />
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <ChartCard title="Lead trend" data={leadTrend} />
@@ -139,3 +155,4 @@ export function ProfitOverview() {
     </>
   );
 }
+

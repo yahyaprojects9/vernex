@@ -40,15 +40,27 @@ export function SettingsForm() {
         <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search settings" />
       </label>
       <section className="dashboard-surface p-5">
-          <div className="settings-fields">
-            {results.map(({ field }) => {
+        <div className="space-y-8">
+          {settingsRegistry.sections.map((section) => {
+            const sectionResults = results.filter((result) => result.section.heading === section.heading);
+            if (!sectionResults.length) return null;
+            return <section key={section.heading} className="space-y-4">
+              <header>
+                <h2 className="text-lg font-semibold">{section.heading}</h2>
+                <p className="text-sm text-muted-foreground">{section.subheading}</p>
+              </header>
+              <div className="settings-fields">
+              {sectionResults.map(({ field }) => {
               const value = draft[field.slug] ?? field.defaultValue;
               const editable = field.editableRoles.includes(roleId);
               return <div key={field.slug} id={field.slug} className="settings-field min-w-0 space-y-2">
                 <label className="text-sm font-medium">{field.label}</label>
                 <SettingControl field={field} value={value} disabled={!editable} onChange={(next) => update(field, next)} />
               </div>;
-            })}
+              })}
+              </div>
+            </section>;
+          })}
           </div>
       </section>
       <div className="dashboard-surface flex items-center justify-end gap-3 p-4">

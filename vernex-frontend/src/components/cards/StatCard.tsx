@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function StatCard({
@@ -6,6 +7,7 @@ export function StatCard({
   value,
   helper,
   icon: Icon,
+  iconNode,
   trend,
   className
 }: {
@@ -13,6 +15,7 @@ export function StatCard({
   value: string;
   helper?: string;
   icon?: LucideIcon;
+  iconNode?: ReactNode;
   trend?: string;
   className?: string;
 }) {
@@ -23,11 +26,11 @@ export function StatCard({
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
           <p className="mt-2 text-2xl font-bold tracking-normal">{value}</p>
         </div>
-        {Icon ? (
+        {iconNode ?? (Icon ? (
           <span className="rounded-md bg-primary/10 p-2 text-primary">
             <Icon className="h-5 w-5" />
           </span>
-        ) : null}
+        ) : null)}
       </div>
       <div className="mt-4 flex items-center justify-between gap-3 text-xs">
         {helper ? <span className="text-muted-foreground">{helper}</span> : <span />}

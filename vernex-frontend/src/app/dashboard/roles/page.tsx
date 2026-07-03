@@ -4,7 +4,7 @@ import { RoleManagement } from "@/modules/shared-core/RoleManagement";
 export default function RolesPage() {
   return (
     <>
-      <PageHeader title="Role Management" breadcrumbs={["Organization", "Role Management"]} />
+      <PageHeader title="Role Management" breadcrumbs={["Buisness Administration", "Role Management"]} />
       <RoleManagement />
     </>
   );

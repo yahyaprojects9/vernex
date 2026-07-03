@@ -6,12 +6,14 @@ import { abilitiesForPermission, defineAbilityFor, type AbilityAction, type Abil
 import { createCollectionRepository } from "@/repositories/createCollectionRepository";
 import { useSessionStore } from "@/stores/sessionStore";
 import { canEditUserHierarchy } from "@/lib/organizationHierarchy";
+import { formatCurrency } from "@/lib/utils";
 import type {
   Conversation,
   CostTracking,
   FollowUpRule,
   HandoffRequest,
   Lead,
+  LeadStatus,
   MenuItemPerformance,
   MessageTemplate,
   ProfitReport,
@@ -122,6 +124,12 @@ const schemaVersion = 4;
 let cachedStore: StoreShape | null = null;
 let storeRevision = 0;
 let visibleStoreCache: { cacheKey: string; store: StoreShape } | null = null;
+
+type ProfitReportOptions = {
+  period?: ProfitReport["period"];
+  fromDate?: string;
+  toDate?: string;
+};
 
 const ownerPermissions = Object.fromEntries(
   permissionsConfig.map((group) => [group.module, group.permissions])
@@ -823,7 +831,23 @@ function withRuntimeDefaults(store: StoreShape): StoreShape {
     memberIds: department.memberIds ?? next.users.filter((user) => user.departmentIds.includes(department.id)).map((user) => user.id),
     createdAt: department.createdAt ?? "2026-06-01"
   }));
-  next.leads = appendMissingById(next.leads, demoLeads);
+  const canonicalLeadStatuses: Record<string, LeadStatus> = {
+    New: "New",
+    Contacted: "Contacted",
+    "Follow-up": "Follow-up",
+    "Quotation Sent": "Quotation Sent",
+    Interested: "Interested",
+    Converted: "Converted",
+    Qualified: "Interested",
+    Negotiation: "Quotation Sent",
+    Won: "Converted",
+    Lost: "Lost"
+  };
+  next.leads = appendMissingById(next.leads, demoLeads).map((lead) => ({
+    ...lead,
+    status: canonicalLeadStatuses[lead.status] ?? lead.status,
+    leadScore: calculateLeadScore(lead)
+  }));
   next.quotations = appendMissingById(next.quotations, demoQuotations);
   next.quotations = next.quotations.map((quotation) => ({
     ...quotation,
@@ -1070,6 +1094,115 @@ export const ProductPerformanceService = collectionService("productPerformance")
 export const CostTrackingService = collectionService("costs");
 export const WastageTrackingService = collectionService("wastage");
 export const ImportService = collectionService("imports");
+
+function calculateLeadScore(lead: Partial<Lead>): Lead["leadScore"] {
+  const signals = [
+    Boolean(lead.requirement?.trim()),
+    Number(lead.budget ?? 0) > 0,
+    ["Immediate", "This Week"].includes(lead.urgency ?? ""),
+    Boolean(lead.interestedService)
+  ].filter(Boolean).length;
+  return signals >= 4 ? "Hot" : signals >= 2 ? "Warm" : "Cold";
+}
+
+export const SalesWorkflowService = {
+  createLead(lead: Lead) {
+    const store = StorageService.read();
+    const fallbackAssignee = store.users.find((user) => ["sales-executive", "staff"].includes(user.roleId));
+    LeadService.create({
+      ...lead,
+      status: lead.status || "New",
+      leadScore: calculateLeadScore(lead),
+      assignedUserId: lead.assignedUserId || fallbackAssignee?.id,
+      assignedStaff: lead.assignedStaff || fallbackAssignee?.name || "",
+      conversationMode: lead.conversationMode || "AI Active",
+      quotationStatus: lead.quotationStatus || "Not Sent",
+      followUpCount: Number(lead.followUpCount || 0)
+    });
+  },
+  updateLead(id: string, patch: Partial<Lead>) {
+    const current = LeadService.list().find((lead) => lead.id === id);
+    LeadService.update(id, {
+      ...patch,
+      leadScore: calculateLeadScore({ ...current, ...patch })
+    });
+  },
+  moveLead(id: string, status: LeadStatus) {
+    LeadService.update(id, { status });
+    const store = StorageService.read();
+    if (status === "Converted") {
+      store.quotations = store.quotations.map((quotation) => quotation.leadId === id ? { ...quotation, status: "Accepted" } : quotation);
+      store.leads = store.leads.map((lead) => lead.id === id ? { ...lead, quotationStatus: "Accepted" } : lead);
+    }
+    if (status === "Lost") {
+      store.leads = store.leads.map((lead) => lead.id === id ? { ...lead, quotationStatus: lead.quotationStatus === "Accepted" ? "Accepted" : "Rejected" } : lead);
+    }
+    StorageService.write(store);
+  },
+  createConversation(conversation: Conversation) {
+    if (!conversation.leadId || !LeadService.list().some((lead) => lead.id === conversation.leadId)) {
+      throw new Error("Create a lead before starting a conversation.");
+    }
+    ConversationService.create(conversation);
+    LeadService.update(conversation.leadId, {
+      status: "Contacted",
+      lastContactedDate: new Date().toISOString().slice(0, 10),
+      conversationMode: conversation.mode === "AI" ? "AI Active" : "Human Active"
+    });
+  },
+  updateConversation(id: string, patch: Partial<Conversation>) {
+    ConversationService.update(id, patch);
+    const conversation = ConversationService.list().find((item) => item.id === id);
+    if (conversation?.leadId) {
+      LeadService.update(conversation.leadId, {
+        lastContactedDate: new Date().toISOString().slice(0, 10),
+        conversationMode: (patch.mode ?? conversation.mode) === "AI" ? "AI Active" : "Human Active"
+      });
+    }
+  },
+  createQuotation(quotation: Quotation) {
+    const lead = LeadService.list().find((item) => item.id === quotation.leadId);
+    if (!lead || !["Interested", "Quotation Sent", "Follow-up", "Contacted"].includes(lead.status)) {
+      throw new Error("A lead must be contacted or interested before a quotation is created.");
+    }
+    QuotationService.create(quotation);
+    if (quotation.status === "Sent") {
+      const followUp = new Date();
+      followUp.setDate(followUp.getDate() + 3);
+      LeadService.update(quotation.leadId, { status: "Quotation Sent", quotationStatus: "Sent", nextFollowUp: lead.nextFollowUp || followUp.toISOString().slice(0, 10) });
+    }
+  },
+  updateQuotation(id: string, patch: Partial<Quotation>) {
+    QuotationService.update(id, patch);
+    const quotation = QuotationService.list().find((item) => item.id === id);
+    if (!quotation) return;
+    if (patch.status === "Sent") {
+      const lead = LeadService.list().find((item) => item.id === quotation.leadId);
+      const followUp = new Date();
+      followUp.setDate(followUp.getDate() + 3);
+      LeadService.update(quotation.leadId, { status: "Quotation Sent", quotationStatus: "Sent", nextFollowUp: lead?.nextFollowUp || followUp.toISOString().slice(0, 10) });
+    }
+    if (patch.status === "Accepted") this.moveLead(quotation.leadId, "Converted");
+  },
+  createHandoff(handoff: HandoffRequest) {
+    if (!handoff.leadId || !ConversationService.list().some((conversation) => conversation.leadId === handoff.leadId)) {
+      throw new Error("A handoff requires an existing lead conversation.");
+    }
+    HandoffService.create(handoff);
+    const store = StorageService.read();
+    store.conversations = store.conversations.map((conversation) =>
+      conversation.leadId === handoff.leadId
+        ? { ...conversation, mode: "Human", assignedUserId: handoff.assignedUserId }
+        : conversation
+    );
+    store.leads = store.leads.map((lead) =>
+      lead.id === handoff.leadId
+        ? { ...lead, conversationMode: "Human Active", assignedUserId: handoff.assignedUserId, assignedStaff: handoff.assignedStaff }
+        : lead
+    );
+    StorageService.write(store);
+  }
+};
 export const SettingsService = {
   get: () => StorageService.read().settings,
   update: (patch: Partial<typeof settingsConfig>) => {
@@ -1149,11 +1282,13 @@ export class AnalyticsService {
     return visibleStore;
   }
 
-  static dashboardMetrics() {
+  static dashboardMetrics(options: Pick<ProfitReportOptions, "fromDate" | "toDate"> = {}) {
     const store = this.visibleStore();
-    const totalSales = store.salesRecords.reduce((sum, row) => sum + row.totalAmount, 0);
-    const wastage = store.wastage.reduce((sum, row) => sum + row.estimatedCostLoss, 0);
-    return { totalSales, totalOrders: store.salesRecords.length, leads: store.leads.length, wastage, profit: totalSales - wastage };
+    const salesRecords = filterByDateRange(store.salesRecords, options.fromDate, options.toDate);
+    const wastageRows = filterByDateRange(store.wastage, options.fromDate, options.toDate);
+    const totalSales = salesRecords.reduce((sum, row) => sum + row.totalAmount, 0);
+    const wastage = wastageRows.reduce((sum, row) => sum + row.estimatedCostLoss, 0);
+    return { totalSales, totalOrders: salesRecords.length, leads: store.leads.length, wastage, profit: totalSales - wastage };
   }
 
   static salesTrend() {
@@ -1166,6 +1301,150 @@ export class AnalyticsService {
         .reduce((sum, row) => sum + Number(row.totalAmount || 0), 0)
     }));
   }
+
+  static generateProfitReport(options: ProfitReportOptions = {}): ProfitReport {
+    const store = this.visibleStore();
+    const period = options.period ?? "Daily";
+    const salesRecords = filterByDateRange(store.salesRecords, options.fromDate, options.toDate);
+    const wastage = filterByDateRange(store.wastage, options.fromDate, options.toDate);
+    const costs = store.costs;
+    const productPerformance = store.productPerformance;
+    const totalSales = salesRecords.reduce((sum, row) => sum + Number(row.totalAmount || 0), 0);
+    const totalOrders = salesRecords.length;
+    const totalQuantity = salesRecords.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+    const totalWastage = wastage.reduce((sum, row) => sum + Number(row.estimatedCostLoss || 0), 0);
+    const dateRange = describeDateRange(salesRecords, wastage, options.fromDate, options.toDate);
+    const itemSales = topEntries(groupAndSum(salesRecords, "itemName", "totalAmount"), 3);
+    const platformSales = topEntries(groupAndSum(salesRecords, "orderSource", "totalAmount"), 3);
+    const categorySales = topEntries(groupAndSum(salesRecords, "category", "totalAmount"), 2);
+    const bestItem = productPerformance.find((item) => item.performanceStatus === "Best Seller") ?? productPerformance[0];
+    const lowMarginItem = [...productPerformance].sort((a, b) => Number(a.profitMargin || 0) - Number(b.profitMargin || 0))[0];
+    const highestCost = [...costs].sort((a, b) => Number(b.grossMargin || 0) - Number(a.grossMargin || 0))[0];
+    const criticalCost = costs.find((item) => item.status === "Critical") ?? costs.find((item) => item.status === "Review");
+    const topWaste = [...wastage].sort((a, b) => Number(b.estimatedCostLoss || 0) - Number(a.estimatedCostLoss || 0))[0];
+    const wastageByReason = topEntries(groupAndSum(wastage, "reason", "estimatedCostLoss"), 2);
+    const peakHours = topEntries(groupAndSum(salesRecords.map((row) => ({ ...row, hour: hourBucket(row.time) })), "hour", "totalAmount"), 2);
+    const wastageRate = totalSales ? (totalWastage / totalSales) * 100 : 0;
+    const platformLeader = platformSales[0];
+
+    const salesSummary = totalOrders
+      ? `${dateRange} generated ${formatCurrency(totalSales)} from ${totalOrders} sales ${plural(totalOrders, "row")} and ${formatNumberSafe(totalQuantity)} ${plural(totalQuantity, "unit")}. Top revenue came from ${listEntries(itemSales)}${categorySales.length ? ` across ${listNames(categorySales)} categories` : ""}${platformSales.length ? `, mainly via ${listEntries(platformSales)}` : ""}.`
+      : `${dateRange} has no sales records yet, so revenue and order volume cannot be summarized. Import sales rows or add manual sales entries to generate a full sales summary.`;
+
+    const bestWorstItems = productPerformance.length
+      ? [
+          bestItem ? `Best seller: ${bestItem.itemName} with ${formatCurrency(bestItem.revenue)} revenue, ${formatNumberSafe(bestItem.quantitySold)} sold, and ${bestItem.profitMargin}% margin.` : "",
+          lowMarginItem && lowMarginItem.id !== bestItem?.id ? `Needs review: ${lowMarginItem.itemName} has the lowest tracked margin at ${lowMarginItem.profitMargin}%.` : "",
+          productPerformance.some((item) => item.performanceStatus === "Slow Moving") ? `Slow moving items detected: ${productPerformance.filter((item) => item.performanceStatus === "Slow Moving").map((item) => item.itemName).slice(0, 3).join(", ")}.` : ""
+        ].filter(Boolean).join(" ")
+      : itemSales.length
+        ? `Product-performance records are not available, but sales data shows ${listEntries(itemSales)} as the leading revenue items. Add product performance data to identify best, healthy, low-margin, and slow-moving items more accurately.`
+        : "No item performance data is available yet. Add sales and product performance rows to identify best sellers and weak items.";
+
+    const foodCostSummary = costs.length
+      ? [
+          highestCost ? `${highestCost.itemName} has selling price ${formatCurrency(highestCost.sellingPrice)}, food cost ${formatCurrency(highestCost.foodCost)}, gross margin ${formatCurrency(highestCost.grossMargin)} (${highestCost.marginPercentage}%).` : "",
+          criticalCost ? `${criticalCost.itemName} is marked ${criticalCost.status}, so pricing or ingredient cost should be reviewed.` : "All tracked cost rows are currently marked healthy."
+        ].filter(Boolean).join(" ")
+      : productPerformance.length
+        ? `No dedicated cost-tracking rows are available. Product performance shows total food cost of ${formatCurrency(productPerformance.reduce((sum, item) => sum + Number(item.foodCost || 0), 0))} against ${formatCurrency(productPerformance.reduce((sum, item) => sum + Number(item.revenue || 0), 0))} revenue.`
+        : "No food-cost records are available yet. Add cost-tracking rows to calculate item margins and pricing risks.";
+
+    const wastageSummary = wastage.length
+      ? `${formatCurrency(totalWastage)} wastage loss was logged from ${wastage.length} ${plural(wastage.length, "entry")}. Highest loss: ${topWaste?.itemName ?? "Unknown item"} at ${formatCurrency(topWaste?.estimatedCostLoss ?? 0)} due to ${topWaste?.reason ?? "unspecified reason"}. Main wastage reasons: ${listEntries(wastageByReason)}.${totalSales ? ` Wastage equals ${wastageRate.toFixed(1)}% of revenue.` : ""}`
+      : "No wastage entries are recorded for this range. Continue logging spoilage, overproduction, kitchen errors, and expired stock to measure preventable loss.";
+
+    const peakHourSummary = peakHours.length
+      ? `Strongest sales ${plural(peakHours.length, "window")} ${peakHours.length === 1 ? "is" : "are"} ${listEntries(peakHours)}. Use this to plan staffing, prep, packaging, and delivery capacity during high-demand hours.`
+      : "Peak hour cannot be calculated because sales rows do not include usable time data yet.";
+
+    const aiRecommendations = [
+      totalOrders ? `Protect ${platformLeader?.name ?? "the leading channel"} demand while checking weaker channels for missed revenue.` : "Start by importing recent sales data.",
+      wastageRate > 3 ? "Wastage is high compared with revenue; review prep quantities and expiry controls." : totalWastage > 0 ? "Keep monitoring wastage so small losses do not compound." : "Maintain wastage logging even when loss is zero.",
+      criticalCost ? `Prioritize margin review for ${criticalCost.itemName}.` : costs.length ? "Keep current cost controls active and refresh ingredient prices regularly." : "Add food-cost records for sharper margin recommendations.",
+      lowMarginItem && Number(lowMarginItem.profitMargin || 0) < 25 ? `Review price or recipe cost for ${lowMarginItem.itemName}.` : ""
+    ].filter(Boolean).join(" ");
+
+    const ownerActionPoints = [
+      totalOrders ? `Review top revenue items (${listNames(itemSales)}) and ensure stock/prep capacity matches demand.` : "Import or enter sales rows for the selected period.",
+      topWaste ? `Reduce ${topWaste.itemName} wastage caused by ${topWaste.reason}.` : "Keep wastage tracking active for every shift.",
+      criticalCost ? `Re-check ${criticalCost.itemName} pricing, portioning, or supplier cost.` : costs.length ? "Schedule periodic cost review for healthy items too." : "Add food-cost data for important menu items.",
+      platformLeader && totalSales && platformLeader.value / totalSales > 0.6 ? `${platformLeader.name} contributes most revenue; avoid over-dependence by growing secondary channels.` : "",
+      peakHours.length ? `Plan staff and production for ${listNames(peakHours)}.` : ""
+    ].filter(Boolean).join(" ");
+
+    return {
+      id: `generated-${period.toLowerCase()}-${options.fromDate || "start"}-${options.toDate || "end"}`,
+      period,
+      salesSummary,
+      bestWorstItems,
+      foodCostSummary,
+      wastageSummary,
+      peakHourSummary,
+      aiRecommendations,
+      ownerActionPoints
+    };
+  }
+}
+
+function filterByDateRange<T extends { date?: string }>(rows: T[], fromDate?: string, toDate?: string) {
+  return rows.filter((row) => {
+    if (!row.date) return true;
+    if (fromDate && row.date < fromDate) return false;
+    if (toDate && row.date > toDate) return false;
+    return true;
+  });
+}
+
+function describeDateRange(salesRecords: SalesRecord[], wastage: WastageEntry[], fromDate?: string, toDate?: string) {
+  if (fromDate || toDate) return `${fromDate || "Start"} to ${toDate || "End"}`;
+  const dates = [...salesRecords.map((row) => row.date), ...wastage.map((row) => row.date)].filter(Boolean).sort();
+  if (!dates.length) return "The selected range";
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  return first === last ? first : `${first} to ${last}`;
+}
+
+function groupAndSum<T extends Record<string, unknown>>(rows: T[], nameKey?: keyof T, valueKey?: keyof T) {
+  const totals = new Map<string, number>();
+  rows.forEach((row) => {
+    const name = String(nameKey ? row[nameKey] ?? "" : "");
+    const value = Number(valueKey ? row[valueKey] ?? 0 : 0);
+    if (!name || Number.isNaN(value)) return;
+    totals.set(name, (totals.get(name) ?? 0) + value);
+  });
+  return [...totals.entries()].map(([name, value]) => ({ name, value }));
+}
+
+function topEntries(entries: { name: string; value: number }[], limit: number) {
+  return entries.filter((entry) => entry.value > 0).sort((a, b) => b.value - a.value).slice(0, limit);
+}
+
+function listEntries(entries: { name: string; value: number }[]) {
+  if (!entries.length) return "no tracked entries";
+  return entries.map((entry) => `${entry.name} (${formatCurrency(entry.value)})`).join(", ");
+}
+
+function listNames(entries: { name: string }[]) {
+  if (!entries.length) return "none";
+  if (entries.length === 1) return entries[0].name;
+  return `${entries.slice(0, -1).map((entry) => entry.name).join(", ")} and ${entries[entries.length - 1].name}`;
+}
+
+function hourBucket(time?: string) {
+  const match = /^(\d{1,2}):?(\d{2})?/.exec(time ?? "");
+  if (!match) return "";
+  const hour = Math.min(23, Math.max(0, Number(match[1])));
+  const nextHour = Math.min(23, hour + 1);
+  return `${String(hour).padStart(2, "0")}:00-${String(nextHour).padStart(2, "0")}:00`;
+}
+
+function plural(count: number, singular: string) {
+  return count === 1 ? singular : `${singular}s`;
+}
+
+function formatNumberSafe(value: number) {
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value);
 }
 
 export const localApi = {

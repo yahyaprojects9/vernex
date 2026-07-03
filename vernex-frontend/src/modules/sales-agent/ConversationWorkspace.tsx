@@ -5,9 +5,9 @@ import { Archive, FileText, Paperclip, Pin, Send, SlidersHorizontal } from "luci
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { AuthService, ConversationService } from "@/lib/services";
+import { AuthService, SalesWorkflowService } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
-import type { Conversation } from "@/types";
+import type { Conversation, Lead } from "@/types";
 
 type ConversationRecord = Conversation & {
   unreadCount?: number;
@@ -27,7 +27,12 @@ export function ConversationWorkspace() {
   const [activeId, setActiveId] = useState(store.conversations[0]?.id ?? "");
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [newCustomer, setNewCustomer] = useState("");
+  const [newLeadId, setNewLeadId] = useState(store.leads[0]?.id ?? "");
+  const [captureDraft, setCaptureDraft] = useState({
+    leadName: "",
+    phone: "",
+    requirement: ""
+  });
   const active = store.conversations.find((conversation) => conversation.id === activeId) ?? store.conversations[0];
 
   const visible = useMemo(() => {
@@ -41,20 +46,70 @@ export function ConversationWorkspace() {
   }, [store.conversations, query, filter]);
 
   function createConversation() {
-    if (!newCustomer.trim()) return;
+    const lead = store.leads.find((item) => item.id === newLeadId);
+    if (!lead) return;
     const conversation: Conversation = {
       id: `CNV-${Date.now()}`,
-      customerName: newCustomer,
+      customerName: lead.leadName,
       channel: "WhatsApp",
       lastMessage: "New conversation created.",
       mode: "AI",
       messageHistory: [{ id: `MSG-${Date.now()}`, sender: "customer", body: "New enquiry started.", time: "Now" }],
       internalNotes: "",
-      leadId: store.leads[0]?.id ?? ""
+      leadId: lead.id
     };
-    ConversationService.create(conversation);
+    SalesWorkflowService.createConversation(conversation);
     setActiveId(conversation.id);
-    setNewCustomer("");
+  }
+
+  function captureAiLead() {
+    const currentUser = AuthService.currentUser();
+    const lead: Lead = {
+      id: `LEA-AI-${Date.now()}`,
+      leadName: captureDraft.leadName.trim() || "WhatsApp AI Lead",
+      phone: captureDraft.phone.trim(),
+      email: "",
+      source: "WhatsApp",
+      businessName: "",
+      requirement: captureDraft.requirement.trim() || "Captured from AI conversation.",
+      interestedService: "WhatsApp Sales Agent",
+      budget: 0,
+      location: "",
+      urgency: "Just Enquiry",
+      status: "Contacted",
+      leadScore: "Cold",
+      assignedStaff: currentUser?.name ?? "",
+      assignedUserId: currentUser?.id,
+      branchId: currentUser?.branchIds[0],
+      departmentId: currentUser?.departmentIds[0],
+      nextFollowUp: "",
+      lastContactedDate: new Date().toISOString().slice(0, 10),
+      followUpCount: 0,
+      quotationStatus: "Not Sent",
+      conversationMode: "AI Active",
+      notes: "Auto-captured from AI reply workflow."
+    };
+    const conversation: Conversation = {
+      id: `CNV-AI-${Date.now()}`,
+      customerName: lead.leadName,
+      channel: "WhatsApp",
+      lastMessage: lead.requirement,
+      mode: "AI",
+      messageHistory: [
+        { id: `MSG-AI-${Date.now()}`, sender: "customer", body: lead.requirement, time: "Now" },
+        { id: `MSG-AI-${Date.now()}-REPLY`, sender: "ai", body: "Thanks. I captured your enquiry and our team will follow up.", time: "Now" }
+      ],
+      internalNotes: "Lead captured from inbound AI enquiry.",
+      leadId: lead.id,
+      assignedUserId: currentUser?.id,
+      branchId: currentUser?.branchIds[0],
+      departmentId: currentUser?.departmentIds[0]
+    };
+    SalesWorkflowService.createLead(lead);
+    SalesWorkflowService.createConversation(conversation);
+    setActiveId(conversation.id);
+    setNewLeadId(lead.id);
+    setCaptureDraft({ leadName: "", phone: "", requirement: "" });
   }
 
   function sendMessage() {
@@ -62,7 +117,7 @@ export function ConversationWorkspace() {
     const attachmentText = attachments.length ? `\nAttachments: ${attachments.map((file) => file.name).join(", ")}` : "";
     const staffMessage = { id: `MSG-${Date.now()}`, sender: "staff" as const, body: `${message || "Attached files"}${attachmentText}`, time: "Now" };
     const aiReply = { id: `MSG-${Date.now()}-AI`, sender: "ai" as const, body: "Thanks. I am checking availability and package options now.", time: "Typing..." };
-    ConversationService.update(active.id, {
+    SalesWorkflowService.updateConversation(active.id, {
       messageHistory: [...active.messageHistory, staffMessage, aiReply],
       lastMessage: message,
       mode: "Human"
@@ -73,15 +128,27 @@ export function ConversationWorkspace() {
 
   function patchActive(patch: Record<string, unknown>) {
     if (!active) return;
-    ConversationService.update(active.id, patch);
+    SalesWorkflowService.updateConversation(active.id, patch);
   }
 
   return (
     <div className="grid gap-4 xl:grid-cols-[320px_1fr_320px]">
       <aside className="dashboard-surface overflow-hidden">
         <div className="space-y-3 border-b border-border p-4">
-          <Input placeholder="Create conversation" value={newCustomer} disabled={!canCreateConversation} onChange={(event) => setNewCustomer(event.target.value)} />
-          <Button className="w-full" onClick={createConversation} disabled={!canCreateConversation}>Create Conversation</Button>
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <p className="text-sm font-semibold">Capture AI Lead</p>
+            <p className="mt-1 text-xs text-muted-foreground">Convert an inbound WhatsApp/AI enquiry into a lead and conversation.</p>
+            <div className="mt-3 space-y-2">
+              <Input placeholder="Lead name" value={captureDraft.leadName} disabled={!canCreateConversation} onChange={(event) => setCaptureDraft({ ...captureDraft, leadName: event.target.value })} />
+              <Input placeholder="Phone number" value={captureDraft.phone} disabled={!canCreateConversation} onChange={(event) => setCaptureDraft({ ...captureDraft, phone: event.target.value })} />
+              <Textarea placeholder="Requirement from AI chat" value={captureDraft.requirement} disabled={!canCreateConversation} onChange={(event) => setCaptureDraft({ ...captureDraft, requirement: event.target.value })} />
+              <Button className="w-full" onClick={captureAiLead} disabled={!canCreateConversation || (!captureDraft.leadName.trim() && !captureDraft.phone.trim() && !captureDraft.requirement.trim())}>Capture Lead</Button>
+            </div>
+          </div>
+          <Select value={newLeadId} disabled={!canCreateConversation || !store.leads.length} onChange={(event) => setNewLeadId(event.target.value)}>
+            {store.leads.length ? store.leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.leadName}</option>) : <option value="">Create a lead first</option>}
+          </Select>
+          <Button className="w-full" onClick={createConversation} disabled={!canCreateConversation || !newLeadId}>Start Lead Conversation</Button>
           <Input placeholder="Search conversations" value={query} onChange={(event) => setQuery(event.target.value)} />
           <Button variant="secondary" className={`w-full ${filtersOpen ? "border-slate-400 bg-slate-200 text-slate-900 hover:bg-slate-200" : ""}`} aria-pressed={filtersOpen} onClick={() => setFiltersOpen((value) => !value)}>
             <SlidersHorizontal className="h-4 w-4" /> Filters

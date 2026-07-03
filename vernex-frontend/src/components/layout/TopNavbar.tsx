@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, Edit, LogOut, Menu, Save, Search, UserCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,9 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLLabelElement>(null);
   const [profileDraft, setProfileDraft] = useState({
     name: "",
     phone: "",
@@ -47,6 +50,20 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
     });
   }, [currentUser]);
 
+  useEffect(() => {
+    function closePopups(event: MouseEvent) {
+      const target = event.target as Node;
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+        setEditingProfile(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(target)) setNotificationsOpen(false);
+      if (searchRef.current && !searchRef.current.contains(target)) setSearchTerm("");
+    }
+    document.addEventListener("mousedown", closePopups);
+    return () => document.removeEventListener("mousedown", closePopups);
+  }, []);
+
   function logout() {
     AuthService.logout();
     router.replace("/login");
@@ -58,11 +75,11 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur md:flex-nowrap md:px-6">
+    <header className="sticky top-0 z-40 flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur md:flex-nowrap md:px-6">
       <Button variant="ghost" className="h-10 w-10 shrink-0 px-0 lg:hidden" onClick={onMenuClick} aria-label="Open sidebar">
         <Menu className="h-5 w-5" />
       </Button>
-      <label className="relative order-3 w-full md:order-none md:block md:max-w-3xl md:flex-1">
+      <label ref={searchRef} className="relative order-3 w-full md:order-none md:block md:max-w-3xl md:flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="bg-white pl-9" placeholder="Search roles, users, branches, departments, reports" />
         {searchResults.length ? <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-md border border-border bg-white p-2 shadow-soft">
@@ -72,7 +89,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
         </div> : null}
       </label>
       <div className="ml-auto flex min-w-0 items-center gap-2">
-        <div className="relative">
+        <div ref={notificationRef} className="relative">
           <Button variant="ghost" className="h-10 w-10 px-0" aria-label="Notifications" onClick={() => setNotificationsOpen((value) => !value)}>
             <Bell className="h-5 w-5" />
           </Button>
@@ -80,12 +97,12 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
             <h3 className="font-semibold">Notifications</h3>
             <div className="mt-2 space-y-2 text-sm">
               <p className="rounded-md bg-muted p-2">{store.handoffs.filter((item) => item.status === "Pending").length} pending handoffs</p>
-              <p className="rounded-md bg-muted p-2">{store.leads.filter((item) => item.status === "Follow-up").length} lead follow-ups</p>
+              <p className="rounded-md bg-muted p-2">{store.leads.filter((item) => Boolean(item.nextFollowUp) && !["Converted", "Lost"].includes(item.status)).length} lead follow-ups</p>
               <p className="rounded-md bg-muted p-2">{store.imports.filter((item) => item.status === "Failed").length} failed imports</p>
             </div>
           </div> : null}
         </div>
-        <div className="relative">
+        <div ref={profileRef} className="relative">
           <button
             type="button"
             className="focus-ring grid h-12 w-12 shrink-0 place-items-center rounded-md border border-border bg-white text-primary transition hover:bg-muted"
@@ -110,7 +127,7 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
                   {[
                     ["name", "Name"],
                     ["phone", "Phone"],
-                    ["companyName", "Company"],
+                    ["companyName", "Company Name"],
                     ["industry", "Industry"],
                     ["companySize", "Company Size"],
                     ["team", "Team"],
@@ -137,6 +154,9 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
                   <div><dt className="text-xs text-muted-foreground">Phone</dt><dd className="font-medium">{currentUser?.phone || "Not set"}</dd></div>
                   <div><dt className="text-xs text-muted-foreground">Company</dt><dd className="font-medium">{currentUser?.companyName || "Not set"}</dd></div>
                   <div><dt className="text-xs text-muted-foreground">Industry</dt><dd className="font-medium">{currentUser?.industry || "Not set"}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Company Size</dt><dd className="font-medium">{currentUser?.companySize || "Not set"}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Team</dt><dd className="font-medium">{currentUser?.team || "Not set"}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Reporting Manager</dt><dd className="font-medium">{currentUser?.reportingManager || "Not set"}</dd></div>
                 </dl>
               )}
               <Button variant="danger" className="mt-4 w-full" onClick={logout}>
@@ -153,3 +173,4 @@ export function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
     </header>
   );
 }
+

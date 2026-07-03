@@ -6,7 +6,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title="Vernex Platform"
-        breadcrumbs={["Organization", "Dashboard"]}
+        breadcrumbs={["Buisness Administration", "Dashboard"]}
       />
       <DashboardOverview />
     </>

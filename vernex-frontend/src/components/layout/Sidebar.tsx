@@ -97,7 +97,7 @@ export function Sidebar({
             {store.settings.companyLogo ? <Image src={store.settings.companyLogo} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-md object-cover" /> : <span aria-label="No company logo" className="h-9 w-9 rounded-md border border-dashed border-border bg-muted" />}
             <span className={cn(collapsed && "lg:hidden")}>
               <span className="block max-w-40 truncate text-sm font-bold">{companyName}</span>
-              <span className="block text-xs text-muted-foreground">Organization</span>
+              <span className="block text-xs text-muted-foreground">Buisness Administration</span>
             </span>
           </Link>
           <Button variant="ghost" className="h-9 w-9 px-0 lg:hidden" onClick={onClose} aria-label="Close sidebar">
@@ -106,7 +106,7 @@ export function Sidebar({
         </div>
         <nav className={cn("flex-1 space-y-4 overflow-y-auto px-3 py-5", collapsed && "lg:flex lg:flex-col lg:items-center lg:px-0")}>
           {navigationGroups.map((group) => {
-            const isProductGroup = group.label !== "Organization";
+            const isProductGroup = group.label !== "Buisness Administration";
             const items = group.items.filter(canAccessItem);
             if (!items.length) return null;
 
@@ -133,7 +133,7 @@ export function Sidebar({
 
                   return (
                     <Link
-                      key={item.href}
+                      key={`${item.href}-${item.label}`}
                       href={item.href}
                       title={collapsed ? item.label : undefined}
                       prefetch

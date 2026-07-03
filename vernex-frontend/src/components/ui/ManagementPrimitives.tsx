@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MoreVertical, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -57,16 +61,47 @@ export function KebabActionMenu({ open, onToggle, ariaLabel, items, openAbove = 
   items: ActionMenuItem[];
   openAbove?: boolean;
 }) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPosition({
+      top: openAbove ? Math.max(8, rect.top - items.length * 40 - 8) : rect.bottom + 6,
+      right: Math.max(8, window.innerWidth - rect.right)
+    });
+
+    function closeOnOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) onToggle();
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onToggle();
+    }
+    function closeOnViewportChange() {
+      onToggle();
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", closeOnViewportChange);
+    window.addEventListener("scroll", closeOnViewportChange, true);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", closeOnViewportChange);
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+    };
+  }, [items.length, onToggle, open, openAbove]);
+
   return (
     <>
-      <Button variant="ghost" className="h-9 w-9 shrink-0 px-0" onClick={onToggle} aria-label={ariaLabel} aria-expanded={open}>
+      <Button ref={buttonRef} variant="ghost" className="h-9 w-9 shrink-0 px-0" onClick={onToggle} aria-label={ariaLabel} aria-expanded={open}>
         <MoreVertical className="h-4 w-4" />
       </Button>
-      {open ? (
-        <div className={cn(
-          "absolute right-3 z-30 w-36 rounded-md border border-border bg-white p-1 shadow-xl",
-          openAbove ? "bottom-[calc(100%-0.5rem)]" : "top-[calc(100%-0.5rem)]"
-        )}>
+      {open && typeof document !== "undefined" ? createPortal(
+        <div ref={menuRef} className="fixed z-[100] w-36 rounded-md border border-border bg-white p-1 shadow-xl" style={position}>
           {items.map(({ icon: Icon, label, onClick, disabled, danger }) => (
             <button
               key={label}
@@ -82,7 +117,8 @@ export function KebabActionMenu({ open, onToggle, ariaLabel, items, openAbove = 
               {label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );

@@ -1,6 +1,6 @@
 [
   {
-    "label": "Organization",
+    "label": "Buisness Administration",
     "items": [
       { "label": "Dashboard", "href": "/dashboard", "icon": "LayoutDashboard" },
       { "label": "Role Management", "href": "/dashboard/roles", "icon": "ShieldCheck" },
@@ -15,13 +15,13 @@
     "label": "Sales Agent",
     "items": [
       { "label": "Overview", "href": "/dashboard/sales-agent", "icon": "Bot" },
-      { "label": "Leads", "href": "/dashboard/sales-agent/leads", "icon": "Inbox" },
-      { "label": "Quotations", "href": "/dashboard/sales-agent/quotations", "icon": "ReceiptText" },
+      { "label": "Lead Management", "href": "/dashboard/sales-agent/leads", "icon": "Inbox" },
       { "label": "Conversations", "href": "/dashboard/sales-agent/conversations", "icon": "MessageSquareText" },
-      { "label": "AI Auto Reply", "href": "/dashboard/sales-agent/ai-auto-reply", "icon": "Bot" },
-      { "label": "Follow-up Automation", "href": "/dashboard/sales-agent/follow-up-automation", "icon": "Handshake" },
+      { "label": "AI Assistant", "href": "/dashboard/sales-agent/ai-auto-reply", "icon": "Bot" },
       { "label": "CRM Pipeline", "href": "/dashboard/sales-agent/crm-pipeline", "icon": "ChartNoAxesCombined" },
-      { "label": "Human Handoff", "href": "/dashboard/sales-agent/human-handoff", "icon": "Users" },
+      { "label": "Quotations", "href": "/dashboard/sales-agent/quotations", "icon": "ReceiptText" },
+      { "label": "Follow-ups", "href": "/dashboard/sales-agent/follow-up-automation", "icon": "Handshake" },
+      { "label": "Human Handoffs", "href": "/dashboard/sales-agent/human-handoff", "icon": "Users" },
       { "label": "Analytics", "href": "/dashboard/sales-agent/analytics", "icon": "BarChart3" }
     ]
   },

@@ -158,7 +158,7 @@ export function RoleManagement() {
         </table>
       </div>
 
-      <FormModal open={Boolean(draft)} title={editingId ? "Edit Role" : "Add Role"} onClose={() => { setDraft(null); setEditingId(null); }} className="max-w-2xl">
+      <FormModal open={Boolean(draft)} title={editingId ? "Edit Role" : "Add Role"} onClose={() => { setDraft(null); setEditingId(null); }}>
         {draft ? <div className="space-y-5">
           {validationError ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger">{validationError}</p> : null}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -172,7 +172,7 @@ export function RoleManagement() {
         </div> : null}
       </FormModal>
 
-      <FormModal open={Boolean(viewingRole)} title={viewingRole?.name ?? "Role Details"} onClose={() => setViewingId(null)} className="max-w-2xl">
+      <FormModal open={Boolean(viewingRole)} title={viewingRole?.name ?? "Role Details"} onClose={() => setViewingId(null)}>
         {viewingRole ? <div className="space-y-5">
           <div><h2 className="text-lg font-semibold">{viewingRole.name}</h2><p className="text-sm text-muted-foreground">{viewingRole.description}</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -206,7 +206,7 @@ function PermissionMatrix({ permissions, editable = false, onToggle, onToggleMod
 }) {
   return <div className="space-y-3">{permissionsConfig.map((group) => (
     <div key={group.module} className="rounded-md border border-border p-4">
-      <div className="flex items-center justify-between"><h3 className="font-semibold">{group.module}</h3>{editable ? <Button variant="secondary" onClick={() => onToggleModule?.(group.module, group.permissions)}>Module Select All</Button> : null}</div>
+      <div className="flex items-center justify-between"><h3 className="font-semibold">{group.module}</h3>{editable ? <Button variant="secondary" onClick={() => onToggleModule?.(group.module, group.permissions)}>Select all</Button> : null}</div>
       <div className="mt-3 grid gap-2 md:grid-cols-3">{group.permissions.map((permission) => (
         <label key={permission} className="flex items-center gap-2 rounded-md bg-muted/60 p-2 text-sm">
           <input type="checkbox" checked={permissions[group.module]?.includes(permission) ?? false} disabled={!editable} onChange={() => onToggle?.(group.module, permission)} />{permission}

@@ -1,9 +1,12 @@
 "use client";
 
-import { Building2, MapPin, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Building2, CalendarClock, CheckCircle2, Flame, FileText, MapPin, Users } from "lucide-react";
 import { StatCard } from "@/components/cards/StatCard";
 import { EntityManager } from "@/modules/shared-core/EntityManager";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
+import { Select } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import {
   BranchService,
   DepartmentService,
@@ -14,12 +17,15 @@ import {
   WastageTrackingService,
   FollowUpRuleService,
   HandoffService,
+  SalesWorkflowService,
   ProductPerformanceService
   ,OrganizationService
   ,AuthService
 } from "@/lib/services";
 import type { CostTracking, FollowUpRule, HandoffRequest, Lead, MenuItemPerformance, Quotation, WastageEntry } from "@/types";
 import { branchSchema, departmentSchema } from "@/schemas/organization";
+
+const leadStatusOptions = ["New", "Contacted", "Follow-up", "Quotation Sent", "Interested", "Converted", "Lost"];
 
 export function BranchManagementScreen() {
   const store = useLocalStore();
@@ -40,6 +46,7 @@ export function BranchManagementScreen() {
         allowSelection={false}
         showHeading={false}
         actionMenu
+        additionalFilterKeys={["managerId", "location"]}
         searchPlaceholder="Search branch"
         permissions={{ module: "Organization", create: "Edit Branches", edit: "Edit Branches", delete: "Edit Branches" }}
         validate={(payload) => {
@@ -76,6 +83,7 @@ export function DepartmentManagementScreen() {
       allowSelection={false}
       showHeading={false}
       actionMenu
+      additionalFilterKeys={["branchId", "managerId"]}
       searchPlaceholder="Search department"
       permissions={{ module: "Organization", create: "Edit Departments", edit: "Edit Departments", delete: "Edit Departments" }}
       validate={(payload) => {
@@ -96,50 +104,139 @@ export function DepartmentManagementScreen() {
 
 export function LeadManagementScreen() {
   const store = useLocalStore();
-  const assignableUsers = store.users.filter((user) => ["sales-executive", "staff"].includes(user.roleId));
-  const userLabels = Object.fromEntries(assignableUsers.map((user) => [user.id, user.name]));
-  const departmentLabels = Object.fromEntries(store.departments.map((department) => [department.id, department.name]));
+  const [sourceFilter, setSourceFilter] = useState("All");
+  const [scoreFilter, setScoreFilter] = useState("All");
+  const [assigneeFilter, setAssigneeFilter] = useState("All");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const assignableUsers = useMemo(() => store.users.filter((user) => ["sales-executive", "staff"].includes(user.roleId)), [store.users]);
+  const userLabels = useMemo(() => Object.fromEntries(assignableUsers.map((user) => [user.id, user.name])), [assignableUsers]);
+  const filteredLeads = useMemo(() => store.leads.filter((lead) => {
+    const matchesSource = sourceFilter === "All" || lead.source === sourceFilter;
+    const matchesScore = scoreFilter === "All" || lead.leadScore === scoreFilter;
+    const matchesAssignee = assigneeFilter === "All" || lead.assignedUserId === assigneeFilter || lead.assignedStaff === userLabels[assigneeFilter];
+    const followUpDate = lead.nextFollowUp || "";
+    const matchesFrom = !fromDate || Boolean(followUpDate && followUpDate >= fromDate);
+    const matchesTo = !toDate || Boolean(followUpDate && followUpDate <= toDate);
+    return matchesSource && matchesScore && matchesAssignee && matchesFrom && matchesTo;
+  }), [assigneeFilter, fromDate, scoreFilter, sourceFilter, store.leads, toDate, userLabels]);
+  const followUpDue = filteredLeads.filter((lead) => Boolean(lead.nextFollowUp) && !["Converted", "Lost"].includes(lead.status) && new Date(`${lead.nextFollowUp}T23:59:59`).getTime() <= Date.now()).length;
+  const resolveAssignee = (record: Lead) => {
+    const user = assignableUsers.find((candidate) =>
+      candidate.id === record.assignedUserId || candidate.name.toLowerCase() === String(record.assignedUserId ?? record.assignedStaff ?? "").toLowerCase()
+    );
+    return {
+      ...record,
+      assignedUserId: user?.id,
+      assignedStaff: user?.name ?? record.assignedStaff ?? String(record.assignedUserId ?? ""),
+      branchId: user?.branchIds[0],
+      departmentId: user?.departmentIds[0]
+    };
+  };
   return (
-    <EntityManager<Lead>
-      title="Lead Management"
-      records={store.leads}
-      onCreate={(record) => LeadService.create({ ...record, assignedStaff: userLabels[record.assignedUserId ?? ""] ?? "", branchId: assignableUsers.find((user) => user.id === record.assignedUserId)?.branchIds[0], departmentId: assignableUsers.find((user) => user.id === record.assignedUserId)?.departmentIds[0] })}
-      onUpdate={LeadService.update}
-      onDelete={LeadService.delete}
-      actionMenu
-      permissions={{ module: "Sales Agent", create: "Create Lead", edit: "Edit Lead", delete: "Delete Lead", export: "Export Leads", import: "Create Lead" }}
-      fields={[
-        { key: "leadName", label: "Lead Name" },
-        { key: "source", label: "Source", type: "select", options: ["WhatsApp", "Website", "Email", "Manual"] },
-        { key: "status", label: "Status", type: "select", options: ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"] },
-        { key: "leadScore", label: "Lead Score", type: "select", options: ["Hot", "Warm", "Cold"] },
-        { key: "assignedUserId", label: "Assigned Staff", type: "select", options: assignableUsers.map((user) => user.id), optionLabels: userLabels, renderValue: (value) => userLabels[value] ?? value },
-        { key: "departmentId", label: "Department", type: "select", options: store.departments.map((department) => department.id), optionLabels: departmentLabels, renderValue: (value) => departmentLabels[value] ?? value },
-        { key: "phone", label: "Phone" },
-        { key: "requirement", label: "Requirement" },
-        { key: "location", label: "Location" },
-        { key: "nextFollowUp", label: "Next Follow-up", type: "date" },
-        { key: "notes", label: "Notes", type: "textarea" }
-      ]}
-    />
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Total Leads" value={String(filteredLeads.length)} helper="Current filter scope" icon={Users} />
+        <StatCard label="Hot Leads" value={String(filteredLeads.filter((lead) => lead.leadScore === "Hot").length)} helper="High intent" icon={Flame} />
+        <StatCard label="Follow-up Due" value={String(followUpDue)} helper="Due or overdue" icon={CalendarClock} />
+        <StatCard label="Quotation Sent" value={String(filteredLeads.filter((lead) => lead.status === "Quotation Sent" || lead.quotationStatus === "Sent").length)} helper="Awaiting decision" icon={FileText} />
+        <StatCard label="Converted Leads" value={String(filteredLeads.filter((lead) => lead.status === "Converted").length)} helper="Closed successfully" icon={CheckCircle2} />
+      </div>
+      <EntityManager<Lead>
+        title="Lead Management"
+        records={filteredLeads}
+        onCreate={(record) => SalesWorkflowService.createLead(resolveAssignee(record))}
+        onUpdate={(id, patch) => SalesWorkflowService.updateLead(id, resolveAssignee(patch as Lead))}
+        onDelete={LeadService.delete}
+        actionMenu
+        tableFieldLimit={11}
+        tableMinWidth="1780px"
+        searchPlaceholder="Search leads by name, phone, source, status, score, assigned staff"
+        extraFilters={
+          <>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Source</span>
+              <Select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} className="min-h-11">
+                <option>All</option>
+                {["WhatsApp", "Instagram", "Website", "Email", "Manual"].map((source) => <option key={source}>{source}</option>)}
+              </Select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Lead Score</span>
+              <Select value={scoreFilter} onChange={(event) => setScoreFilter(event.target.value)} className="min-h-11">
+                <option>All</option><option>Hot</option><option>Warm</option><option>Cold</option>
+              </Select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Assigned Staff</span>
+              <Select value={assigneeFilter} onChange={(event) => setAssigneeFilter(event.target.value)} className="min-h-11">
+                <option>All</option>
+                {assignableUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+              </Select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Follow-up From</span>
+              <DateInput value={fromDate} onValueChange={setFromDate} className="min-h-11" />
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Follow-up To</span>
+              <DateInput value={toDate} onValueChange={setToDate} className="min-h-11" />
+            </label>
+          </>
+        }
+        permissions={{ module: "Sales Agent", create: "Create Lead", edit: "Edit Lead", delete: "Delete Lead", export: "Export Leads", import: "Create Lead" }}
+        fields={[
+          { key: "leadName", label: "Lead Name", tableClassName: "w-[170px]" },
+          { key: "phone", label: "Phone", tableClassName: "w-[130px]" },
+          { key: "email", label: "Email", hideInTable: true },
+          { key: "source", label: "Source", type: "select", options: ["WhatsApp", "Instagram", "Website", "Email", "Manual"], tableClassName: "w-[120px]" },
+          { key: "businessName", label: "Business Name", hideInTable: true },
+          { key: "requirement", label: "Requirement", type: "textarea", tableClassName: "w-[220px]" },
+          { key: "interestedService", label: "Interested Service", type: "select", options: ["Website", "Digital Marketing", "Automation", "Restaurant Profit AI", "WhatsApp Sales Agent", "Other"], hideInTable: true },
+          { key: "budget", label: "Budget", type: "number", tableClassName: "w-[110px]" },
+          { key: "location", label: "Location", hideInTable: true },
+          { key: "urgency", label: "Urgency", type: "select", options: ["Immediate", "This Week", "This Month", "Just Enquiry"], hideInTable: true },
+          { key: "status", label: "Status", type: "select", options: leadStatusOptions, defaultOnCreate: "New", tableClassName: "w-[130px]" },
+          { key: "leadScore", label: "Lead Score", type: "select", options: ["Hot", "Warm", "Cold"], tableClassName: "w-[110px]" },
+          { key: "assignedUserId", label: "Assigned Staff", type: "select", options: assignableUsers.map((user) => user.id), optionLabels: userLabels, renderValue: (value) => userLabels[value] ?? value, tableClassName: "w-[150px]" },
+          {
+            key: "nextFollowUp",
+            label: "Next Follow-up",
+            type: "date",
+            tableClassName: "w-[150px]",
+            renderValue: (value, record) => {
+              const isClosed = ["Converted", "Lost"].includes(String(record.status));
+              const isOverdue = Boolean(value) && !isClosed && new Date(`${value}T23:59:59`).getTime() < Date.now();
+              return <span className={isOverdue ? "font-semibold text-danger" : ""}>{value || "-"}{isOverdue ? " (Overdue)" : ""}</span>;
+            }
+          },
+          { key: "quotationStatus", label: "Quotation", type: "select", options: ["Not Sent", "Sent", "Accepted", "Rejected"], defaultOnCreate: "Not Sent", tableClassName: "w-[120px]" },
+          { key: "conversationMode", label: "Conversation", type: "select", options: ["AI Active", "Human Active"], defaultOnCreate: "AI Active", tableClassName: "w-[130px]" },
+          { key: "lastContactedDate", label: "Last Contacted Date", type: "date", hideInTable: true },
+          { key: "followUpCount", label: "Follow-up Count", type: "number", hideInTable: true },
+          { key: "notes", label: "Notes", type: "textarea", hideInTable: true }
+        ]}
+      />
+    </div>
   );
 }
 
 export function QuotationManagementScreen() {
   const store = useLocalStore();
+  const eligibleLeads = store.leads.filter((lead) => ["Contacted", "Follow-up", "Interested", "Quotation Sent"].includes(lead.status));
   const leadLabels = Object.fromEntries(store.leads.map((lead) => [lead.id, lead.leadName]));
   return (
     <EntityManager<Quotation>
       title="Quotation Management"
       records={store.quotations}
-      onCreate={(record) => QuotationService.create(record)}
-      onUpdate={QuotationService.update}
+      onCreate={(record) => SalesWorkflowService.createQuotation(record)}
+      onUpdate={SalesWorkflowService.updateQuotation}
       onDelete={QuotationService.delete}
       actionMenu
       permissions={{ module: "Sales Agent", create: "Manage Quotations", edit: "Manage Quotations", delete: "Manage Quotations", export: "Manage Quotations" }}
-      validate={(payload) => payload.leadId ? null : "Select a lead before creating the quotation."}
+      validate={(payload) => payload.leadId && eligibleLeads.some((lead) => lead.id === payload.leadId) ? null : "Select a contacted, follow-up, interested, or quotation-stage lead before creating the quotation."}
       fields={[
-        { key: "leadId", label: "Lead", type: "select", options: store.leads.map((lead) => lead.id), optionLabels: leadLabels, renderValue: (value) => leadLabels[value] ?? value },
+        { key: "leadId", label: "Lead", type: "select", options: eligibleLeads.map((lead) => lead.id), optionLabels: leadLabels, renderValue: (value) => leadLabels[value] ?? value },
         { key: "quotationTitle", label: "Quotation Title" },
         { key: "servicePackageName", label: "Service/Package Name" },
         { key: "price", label: "Price", type: "number" },
@@ -157,6 +254,7 @@ export function CostTrackingScreen() {
   return (
     <EntityManager<CostTracking>
       title="Cost Tracking"
+      actionMenu
       records={store.costs}
       onCreate={(record) => CostTrackingService.create(record)}
       onUpdate={CostTrackingService.update}
@@ -179,6 +277,7 @@ export function WastageTrackingScreen() {
   return (
     <EntityManager<WastageEntry>
       title="Wastage Tracking"
+      actionMenu
       records={store.wastage}
       onCreate={(record) => WastageTrackingService.create(record)}
       onUpdate={WastageTrackingService.update}
@@ -198,6 +297,9 @@ export function WastageTrackingScreen() {
 
 export function FollowUpRuleScreen() {
   const store = useLocalStore();
+  if (!store.quotations.some((quotation) => quotation.status === "Sent")) {
+    return <div className="dashboard-surface p-6 text-sm text-muted-foreground">Send a quotation before configuring automated follow-ups.</div>;
+  }
   return (
     <EntityManager<FollowUpRule>
       title="Follow-Up Automation"
@@ -211,7 +313,7 @@ export function FollowUpRuleScreen() {
         { key: "triggerCondition", label: "Trigger Condition", type: "select", options: ["No response after first contact", "Quotation sent but not accepted", "Follow-up date reached", "Lead marked interested", "Conversation needs human reply", "Custom trigger"] },
         { key: "delayTime", label: "Delay Time", type: "select", options: ["Immediate", "15 minutes", "1 hour", "4 hours", "1 day", "3 days", "1 week"] },
         { key: "template", label: "Template", type: "select", options: ["Friendly reminder", "Quotation follow-up", "Availability confirmation", "Need more details", "Escalation notice", "Custom template"] },
-        { key: "leadStatus", label: "Lead Status", type: "select", options: ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"] },
+        { key: "leadStatus", label: "Lead Status", type: "select", options: leadStatusOptions },
         { key: "status", label: "Status", type: "select", options: ["Active", "Inactive"] }
       ]}
     />
@@ -226,12 +328,22 @@ export function HandoffManagementScreen() {
     <EntityManager<HandoffRequest>
       title="Human Handoff"
       records={store.handoffs}
-      onCreate={(record) => HandoffService.create({ ...record, assignedUserId: record.assignedStaff })}
+      onCreate={(record) => {
+        const lead = store.leads.find((item) => item.id === record.leadId);
+        SalesWorkflowService.createHandoff({
+          ...record,
+          customerName: lead?.leadName ?? record.customerName,
+          assignedUserId: record.assignedStaff,
+          assignedStaff: userNameById[record.assignedStaff] ?? record.assignedStaff
+        });
+      }}
       onUpdate={HandoffService.update}
       onDelete={HandoffService.delete}
+      validate={(payload) => payload.leadId && store.conversations.some((conversation) => conversation.leadId === payload.leadId) ? null : "Select a lead with an existing conversation."}
       permissions={{ module: "Sales Agent", create: "Assign Conversation", edit: "Assign Conversation", delete: "Assign Conversation" }}
       fields={[
-        { key: "customerName", label: "Customer Name", tableClassName: "w-[15%]" },
+        { key: "leadId", label: "Lead Conversation", type: "select", options: store.leads.filter((lead) => store.conversations.some((conversation) => conversation.leadId === lead.id)).map((lead) => lead.id), optionLabels: Object.fromEntries(store.leads.map((lead) => [lead.id, lead.leadName])), hideInTable: true },
+        { key: "customerName", label: "Customer Name", tableClassName: "w-[15%]", hideOnCreate: true },
         { key: "reason", label: "Reason" },
         { key: "conversationSummary", label: "Conversation Summary", type: "textarea", tableClassName: "w-[28%]" },
         {
@@ -254,6 +366,7 @@ export function ProductPerformanceScreen() {
   return (
     <EntityManager<MenuItemPerformance>
       title="Product Performance"
+      actionMenu
       records={store.productPerformance}
       onCreate={(record) => ProductPerformanceService.create(record)}
       onUpdate={ProductPerformanceService.update}

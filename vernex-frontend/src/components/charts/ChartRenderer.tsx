@@ -20,12 +20,25 @@ type ChartType = "area" | "bar" | "pie";
 
 const colors = ["#15848e", "#16a34a", "#f59e0b", "#ef4444", "#64748b", "#0f766e"];
 
+function formatAxisValue(value: number | string) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return String(value);
+  const absoluteValue = Math.abs(numericValue);
+  if (absoluteValue >= 10000000) return `${trimNumber(numericValue / 10000000)}Cr`;
+  if (absoluteValue >= 100000) return `${trimNumber(numericValue / 100000)}L`;
+  if (absoluteValue >= 1000) return `${trimNumber(numericValue / 1000)}K`;
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(numericValue);
+}
+
+function trimNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 export function ChartRenderer({
   data,
   dataKey,
   nameKey,
-  type,
-  total
+  type
 }: {
   data: Record<string, string | number>[];
   dataKey: string;
@@ -35,51 +48,52 @@ export function ChartRenderer({
 }) {
   if (type === "bar") {
     return (
-      <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
-        <YAxis tickLine={false} axisLine={false} width={36} />
-        <Tooltip />
-        <Bar dataKey={dataKey} fill="#15848e" radius={[6, 6, 0, 0]} />
-      </BarChart>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 12 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
+          <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={formatAxisValue} />
+          <Tooltip />
+          <Bar dataKey={dataKey} fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     );
   }
 
   if (type === "pie") {
     return (
-      <PieChart>
-        <Tooltip />
-        <Legend verticalAlign="bottom" height={36} />
-        <Pie
-          data={data}
-          dataKey={dataKey}
-          nameKey={nameKey}
-          outerRadius={88}
-          innerRadius={48}
-          paddingAngle={3}
-          labelLine
-          label={(entry) => {
-            const value = Number(entry[dataKey] || 0);
-            const percent = total ? Math.round((value / total) * 100) : 0;
-            return `${entry[nameKey]}: ${value} (${percent}%)`;
-          }}
-        >
-          {data.map((_, index) => (
-            <Cell key={index} fill={colors[index % colors.length]} />
-          ))}
-        </Pie>
-      </PieChart>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Tooltip />
+          <Legend verticalAlign="bottom" height={36} />
+          <Pie
+            data={data}
+            dataKey={dataKey}
+            nameKey={nameKey}
+            outerRadius={88}
+            innerRadius={48}
+            paddingAngle={3}
+            labelLine={false}
+          >
+            {data.map((_, index) => (
+              <Cell key={index} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
     );
   }
 
   return (
-    <AreaChart data={data}>
-      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-      <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
-      <YAxis tickLine={false} axisLine={false} width={36} />
-      <Tooltip />
-      <Area type="monotone" dataKey={dataKey} stroke="#15848e" fill="#15848e" fillOpacity={0.16} />
-    </AreaChart>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 12 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
+        <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={formatAxisValue} />
+        <Tooltip />
+        <Area type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.16} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 

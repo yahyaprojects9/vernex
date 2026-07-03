@@ -5,17 +5,16 @@ import { Download, Edit, Eye, Plus, Search, SlidersHorizontal, Upload } from "lu
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { FormModal } from "@/components/modals/FormModal";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AuthService, OrganizationService, UserService, type StoredUser } from "@/lib/services";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import { userSchema } from "@/schemas/organization";
 import { DetailItem, KebabActionMenu, LabeledField, UserAvatar } from "@/components/ui/ManagementPrimitives";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 8;
 
 const formFields = [
-  ["name", "Full Name"],
-  ["email", "Email"],
-  ["phone", "Phone"],
   ["employeeCode", "Employee Code"],
   ["joiningDate", "Joining Date"],
   ["team", "Team"]
@@ -58,15 +57,16 @@ export function UserManagementScreen() {
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function openCreate() {
+    const timestamp = Date.now();
     setEditing(null);
     setError("");
     setDraft({
       avatar: "",
-      name: "",
-      email: "",
+      name: "New User",
+      email: `user-${timestamp}@vernex.local`,
       phone: "",
-      password: "",
-      confirmPassword: "",
+      password: "ChangeMe123",
+      confirmPassword: "ChangeMe123",
       roleId: store.roles.find((role) => role.status !== "Inactive")?.id ?? "",
       branchId: store.branches[0]?.id ?? "",
       departmentId: store.departments[0]?.id ?? "",
@@ -251,18 +251,16 @@ export function UserManagementScreen() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] table-fixed text-left">
             <colgroup>
-              <col className="w-[30%]" />
-              <col className="w-[31%]" />
-              <col className="w-[14%]" />
-              <col className="w-[15%]" />
+              <col className="w-[38%]" />
+              <col className="w-[40%]" />
+              <col className="w-[12%]" />
               <col className="w-[10%]" />
             </colgroup>
             <thead className="bg-muted/70 text-xs font-semibold uppercase text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">User name</th>
                 <th className="px-5 py-3">Access</th>
-                <th className="whitespace-nowrap px-5 py-3">Last active</th>
-                <th className="whitespace-nowrap px-5 py-3">Date added</th>
+                <th className="whitespace-nowrap px-5 py-3">Status</th>
                 <th className="whitespace-nowrap px-3 py-3 [overflow-wrap:normal]">Actions</th>
               </tr>
             </thead>
@@ -280,13 +278,14 @@ export function UserManagementScreen() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex min-w-0 flex-wrap gap-1.5">
-                      <AccessBadge tone="role">{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
-                      {departmentId ? <AccessBadge tone="department">{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
-                      {branchId ? <AccessBadge tone="branch">{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
+                      <AccessBadge colorKey={`role-${user.roleId}`}>{roleById[user.roleId]?.name ?? user.roleId}</AccessBadge>
+                      {departmentId ? <AccessBadge colorKey={`department-${departmentId}`}>{departmentById[departmentId]?.name ?? departmentId}</AccessBadge> : null}
+                      {branchId ? <AccessBadge colorKey={`branch-${branchId}`}>{branchById[branchId]?.name ?? branchId}</AccessBadge> : null}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-sm">{user.lastActive || "-"}</td>
-                  <td className="whitespace-nowrap px-5 py-4 text-sm">{user.joiningDate || "-"}</td>
+                  <td className="whitespace-nowrap px-5 py-4 text-sm">
+                    <StatusBadge tone={user.status === "Active" ? "success" : user.status === "Inactive" ? "neutral" : "warning"}>{user.status}</StatusBadge>
+                  </td>
                   <td className="relative px-3 py-4 text-right">
                     <KebabActionMenu
                       open={menuId === user.id}
@@ -314,12 +313,7 @@ export function UserManagementScreen() {
       <FormModal open={formOpen} title={editing ? "Edit user" : "Add user"} onClose={() => setFormOpen(false)} className="max-w-xl">
         <div className="grid gap-4 sm:grid-cols-2">
           {error ? <p className="rounded-md bg-danger/10 p-3 text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
-          <label className="space-y-1 sm:col-span-2"><span className="text-sm font-medium">Profile picture</span><Input type="file" accept="image/*" onChange={(event) => {
-            const file = event.target.files?.[0]; if (!file) return;
-            const reader = new FileReader(); reader.onload = () => setDraft({ ...draft, avatar: String(reader.result) }); reader.readAsDataURL(file);
-          }} /></label>
-          {formFields.map(([key, label]) => <LabeledField key={key} label={label}><Input type={key === "joiningDate" ? "date" : key === "email" ? "email" : "text"} value={draft[key] ?? ""} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} /></LabeledField>)}
-          {!editing ? <><LabeledField label="Password"><Input type="password" value={draft.password ?? ""} onChange={(event) => setDraft({ ...draft, password: event.target.value })} /></LabeledField><LabeledField label="Confirm Password"><Input type="password" value={draft.confirmPassword ?? ""} onChange={(event) => setDraft({ ...draft, confirmPassword: event.target.value })} /></LabeledField></> : null}
+          {formFields.filter(([key]) => !editing || key !== "joiningDate").map(([key, label]) => <LabeledField key={key} label={label}><Input type={key === "joiningDate" ? "date" : "text"} value={draft[key] ?? ""} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} /></LabeledField>)}
           <LabeledField label="Role"><Select value={draft.roleId ?? ""} onChange={(event) => setDraft({ ...draft, roleId: event.target.value })}>{store.roles.filter((role) => role.status !== "Inactive").map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></LabeledField>
           <LabeledField label="Branch"><Select value={draft.branchId ?? ""} onChange={(event) => setDraft({ ...draft, branchId: event.target.value })}>{store.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</Select></LabeledField>
           <LabeledField label="Department"><Select value={draft.departmentId ?? ""} onChange={(event) => setDraft({ ...draft, departmentId: event.target.value })}>{store.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</Select></LabeledField>
@@ -346,13 +340,18 @@ export function UserManagementScreen() {
   );
 }
 
-function AccessBadge({ children, tone }: { children: React.ReactNode; tone: "role" | "branch" | "department" }) {
-  const tones = {
-    role: "border-emerald-300 bg-emerald-100 text-emerald-800",
-    branch: "border-sky-300 bg-sky-100 text-sky-800",
-    department: "border-violet-300 bg-violet-100 text-violet-800"
-  };
-  return <span className={`max-w-40 truncate rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
+function AccessBadge({ children, colorKey }: { children: React.ReactNode; colorKey: string }) {
+  const tones = [
+    "border-emerald-300 bg-emerald-100 text-emerald-800",
+    "border-sky-300 bg-sky-100 text-sky-800",
+    "border-violet-300 bg-violet-100 text-violet-800",
+    "border-amber-300 bg-amber-100 text-amber-800",
+    "border-rose-300 bg-rose-100 text-rose-800",
+    "border-cyan-300 bg-cyan-100 text-cyan-800",
+    "border-indigo-300 bg-indigo-100 text-indigo-800"
+  ];
+  const tone = tones[colorKey.split("").reduce((sum, character) => sum + character.charCodeAt(0), 0) % tones.length];
+  return <span className={cn("max-w-40 truncate rounded-full border px-2.5 py-1 text-xs font-semibold", tone)}>{children}</span>;
 }
 
 function legacyRole(roleId: string): StoredUser["role"] {

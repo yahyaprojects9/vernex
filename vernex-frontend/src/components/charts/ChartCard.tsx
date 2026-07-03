@@ -13,11 +13,6 @@ const ChartRenderer = dynamic(
   }
 );
 
-const ResponsiveContainer = dynamic(
-  () => import("@/components/charts/ChartRenderer").then((mod) => mod.ResponsiveContainer),
-  { ssr: false }
-);
-
 export function ChartCard({
   title,
   data,
@@ -43,9 +38,7 @@ export function ChartCard({
         <h3 className="text-base font-semibold">{title}</h3>
       </div>
       <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ChartRenderer data={data} dataKey={dataKey} nameKey={nameKey} type={type} total={total} />
-        </ResponsiveContainer>
+        <ChartRenderer data={data} dataKey={dataKey} nameKey={nameKey} type={type} total={total} />
       </div>
     </section>
   );

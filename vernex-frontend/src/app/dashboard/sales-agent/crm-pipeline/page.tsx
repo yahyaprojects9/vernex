@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { AuthService, LeadService } from "@/lib/services";
+import { AuthService, SalesWorkflowService } from "@/lib/services";
 import { KanbanBoard } from "@/modules/sales-agent/KanbanBoard";
 import { useLocalStore } from "@/modules/shared-core/useLocalStore";
 import type { LeadStatus } from "@/types";
 
-const stages = ["New", "Contacted", "Follow-up", "Interested", "Converted", "Lost"];
+const stages = ["New", "Contacted", "Follow-up", "Quotation Sent", "Interested", "Converted", "Lost"];
 
 export default function CrmPipelinePage() {
   const store = useLocalStore();
@@ -20,7 +20,7 @@ export default function CrmPipelinePage() {
 
   function moveLead(leadId: string, status: string) {
     setPipelineLeads((leads) => leads.map((lead) => lead.id === leadId ? { ...lead, status: status as LeadStatus } : lead));
-    LeadService.update(leadId, { status: status as LeadStatus });
+    SalesWorkflowService.moveLead(leadId, status as LeadStatus);
   }
 
   return (
@@ -39,3 +39,4 @@ export default function CrmPipelinePage() {
     </>
   );
 }
+

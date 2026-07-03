@@ -6,6 +6,7 @@ import { StatCard } from "@/components/cards/StatCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import { EmptyState } from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KebabActionMenu } from "@/components/ui/ManagementPrimitives";
@@ -62,14 +63,14 @@ export function ReportsGrid() {
           <h2 className="mt-1 text-xl font-bold">Report Preview: {activeReport}</h2>
           <p className="text-sm text-muted-foreground">Date range: Current selected period | Filters: Role scope, branch scope, department scope</p>
           <div className="mt-4 overflow-x-auto">
-          <div className="grid min-w-[620px] grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_auto] items-end gap-3">
+          <div className="grid min-w-[680px] max-w-4xl grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_auto] items-end gap-4">
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase text-muted-foreground">From Date</span>
-              <Input className="uppercase" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+              <DateInput value={fromDate} onValueChange={setFromDate} />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase text-muted-foreground">To Date</span>
-              <Input className="uppercase" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+              <DateInput value={toDate} onValueChange={setToDate} />
             </label>
             <div>
               <Button variant="secondary" onClick={downloadReport}>Download</Button>
@@ -77,12 +78,12 @@ export function ReportsGrid() {
           </div>
           </div>
         </div>
-        <div className="overflow-x-auto p-5">
-        <div className="grid min-w-[720px] grid-cols-4 gap-4">
-          <StatCard className="aspect-square" label="Leads" value={String(metrics.leads)} helper="Scoped records" />
-          <StatCard className="aspect-square" label="Orders" value={String(metrics.totalOrders)} helper="Imported rows" />
-          <StatCard className="aspect-square" label="Revenue" value={formatCurrency(metrics.totalSales)} helper="Sales summary" />
-          <StatCard className="aspect-square" label="Profit" value={formatCurrency(metrics.profit)} helper="After wastage" />
+        <div className="p-5">
+        <div className="grid w-full max-w-[640px] grid-cols-2 gap-4">
+          <StatCard className="aspect-square w-full" label="Leads" value={String(metrics.leads)} helper="Scoped records" />
+          <StatCard className="aspect-square w-full" label="Orders" value={String(metrics.totalOrders)} helper="Imported rows" />
+          <StatCard className="aspect-square w-full" label="Revenue" value={formatCurrency(metrics.totalSales)} helper="Sales summary" />
+          <StatCard className="aspect-square w-full" label="Profit" value={formatCurrency(metrics.profit)} helper="After wastage" />
         </div>
         </div>
         <div className="p-5 pt-0">
@@ -172,6 +173,10 @@ export function AiReplyConfigurator() {
 
   function cloneRule(rule: (typeof store.rules)[number]) {
     FollowUpRuleService.create({ ...rule, id: `RULE-${Date.now()}`, ruleName: `${rule.ruleName} Copy` });
+  }
+
+  if (!store.conversations.length) {
+    return <EmptyState title="No conversations yet" description="Create a lead and start its conversation before configuring AI replies." />;
   }
 
   return (
@@ -294,11 +299,20 @@ export function LeadAnalytics() {
   );
 }
 
-export function ProfitReportPreview() {
+export function ProfitReportPreview({
+  period = "Daily",
+  fromDate,
+  toDate
+}: {
+  period?: "Daily" | "Weekly" | "Monthly";
+  fromDate?: string;
+  toDate?: string;
+}) {
   const store = useLocalStore();
-  const report = store.reports[0];
+  const report = AnalyticsService.generateProfitReport({ period, fromDate, toDate });
+  const hasReportData = Boolean(store.salesRecords.length || store.costs.length || store.wastage.length || store.productPerformance.length);
 
-  if (!report) {
+  if (!hasReportData) {
     return <EmptyState title="No profit report yet" description="Create or import sales records to preview generated profit reports." />;
   }
 
@@ -311,6 +325,7 @@ export function ProfitReportPreview() {
         { label: "Food Cost", value: report.foodCostSummary },
         { label: "Wastage", value: report.wastageSummary },
         { label: "Peak Hour", value: report.peakHourSummary },
+        { label: "Recommendations", value: report.aiRecommendations },
         { label: "Owner Actions", value: report.ownerActionPoints }
       ]}
     />

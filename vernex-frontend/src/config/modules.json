@@ -1,5 +1,5 @@
 [
-  { "id": "organization", "label": "Organization", "slug": "dashboard", "enabled": true },
+  { "id": "organization", "label": "Buisness Administration", "slug": "dashboard", "enabled": true },
   { "id": "sales-agent", "label": "Sales Agent", "slug": "dashboard/sales-agent", "enabled": true },
   { "id": "profit-analysis", "label": "Profit Analysis", "slug": "dashboard/profit-analysis", "enabled": true }
 ]

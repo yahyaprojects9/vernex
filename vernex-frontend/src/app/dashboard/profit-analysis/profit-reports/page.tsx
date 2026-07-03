@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ProfitReportPreview } from "@/modules/shared-core/CommonSections";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import { AnalyticsService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
 
@@ -12,9 +12,10 @@ export default function ProfitReportsPage() {
   const [period, setPeriod] = useState("Daily");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const metrics = AnalyticsService.dashboardMetrics({ fromDate, toDate });
 
   function downloadReport() {
-    const metrics = AnalyticsService.dashboardMetrics();
+    const report = AnalyticsService.generateProfitReport({ period: period as "Daily" | "Weekly" | "Monthly", fromDate, toDate });
     const content = [
       "Vernex Profit Report",
       `Period: ${period}`,
@@ -23,6 +24,14 @@ export default function ProfitReportsPage() {
       `Orders: ${metrics.totalOrders}`,
       `Wastage: ${formatCurrency(metrics.wastage)}`,
       `Profit: ${formatCurrency(metrics.profit)}`,
+      "",
+      `Sales Summary: ${report.salesSummary}`,
+      `Best/Worst Items: ${report.bestWorstItems}`,
+      `Food Cost: ${report.foodCostSummary}`,
+      `Wastage: ${report.wastageSummary}`,
+      `Peak Hour: ${report.peakHourSummary}`,
+      `Recommendations: ${report.aiRecommendations}`,
+      `Owner Actions: ${report.ownerActionPoints}`,
       `Generated at: ${new Date().toLocaleString()}`
     ].join("\n");
     const blob = new Blob([content], { type: "text/plain" });
@@ -46,17 +55,17 @@ export default function ProfitReportsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">From date</span>
-            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+            <DateInput value={fromDate} onValueChange={setFromDate} />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">To date</span>
-            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            <DateInput value={toDate} onValueChange={setToDate} />
           </label>
         </div>
         <Button onClick={downloadReport}>Download Report</Button>
       </div>
       <div className="min-w-0 overflow-hidden">
-        <ProfitReportPreview />
+        <ProfitReportPreview period={period as "Daily" | "Weekly" | "Monthly"} fromDate={fromDate} toDate={toDate} />
       </div>
     </>
   );

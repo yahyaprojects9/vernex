@@ -7,7 +7,7 @@
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-  --primary: 187 75% 32%;
+  --primary: 174 77% 26%;
   --primary-foreground: 0 0% 100%;
   --success: 152 64% 34%;
   --success-foreground: 0 0% 100%;
@@ -19,7 +19,7 @@
   --muted-foreground: 215 16% 47%;
   --border: 214 24% 88%;
   --input: 214 24% 88%;
-  --ring: 187 75% 32%;
+  --ring: 174 77% 26%;
 }
 
 * {

@@ -10,16 +10,21 @@ export type User = {
   lastActive: string;
 };
 
-export type LeadStatus = "New" | "Contacted" | "Follow-up" | "Interested" | "Converted" | "Lost";
+export type LeadStatus = "New" | "Contacted" | "Follow-up" | "Quotation Sent" | "Interested" | "Converted" | "Lost";
 export type LeadScore = "Hot" | "Warm" | "Cold";
 
 export type Lead = {
   id: string;
   leadName: string;
   phone: string;
-  source: "WhatsApp" | "Website" | "Email" | "Manual";
+  email?: string;
+  source: "WhatsApp" | "Instagram" | "Website" | "Email" | "Manual";
+  businessName?: string;
   requirement: string;
+  interestedService?: "Website" | "Digital Marketing" | "Automation" | "Restaurant Profit AI" | "WhatsApp Sales Agent" | "Other";
+  budget?: number;
   location: string;
+  urgency?: "Immediate" | "This Week" | "This Month" | "Just Enquiry";
   status: LeadStatus;
   leadScore: LeadScore;
   assignedStaff: string;
@@ -27,6 +32,10 @@ export type Lead = {
   branchId?: string;
   departmentId?: string;
   nextFollowUp: string;
+  lastContactedDate?: string;
+  followUpCount?: number;
+  quotationStatus?: "Not Sent" | "Sent" | "Accepted" | "Rejected";
+  conversationMode?: "AI Active" | "Human Active";
   notes: string;
 };
 
